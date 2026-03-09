@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WASSA WASSA — Staff Translator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand:#e8dcc8;--sand-light:#f5f0e8;--earth:#8b6f47;--earth-dark:#4a3728;
+  --earth-mid:#6b4f38;--ocean:#3d6b7a;--forest:#4e6b44;--cream:#faf8f3;
+  --charcoal:#2c2825;--warm-gray:#9a8878;--coral:#b86840;--gold:#c4973a;
+  --danger:#8b3a2a;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);color:var(--charcoal)}
+#langSplash{position:fixed;inset:0;z-index:3000;background:linear-gradient(160deg,#1e1208 0%,#3a2510 45%,#1e3028 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;transition:opacity 0.7s}
+#langSplash.hide{opacity:0;pointer-events:none}
+.sp-logo{font-family:'Cormorant Garamond',serif;color:var(--sand);text-align:center}
+.sp-logo .ww{font-size:52px;font-weight:300;letter-spacing:10px;display:block}
+.sp-logo .sub{font-size:13px;letter-spacing:5px;color:var(--warm-gray);margin-top:6px;display:block;font-style:italic}
+.sp-role{font-family:'Cormorant Garamond',serif;color:var(--sand-light);font-size:17px;letter-spacing:3px;font-style:italic}
+.sp-lang-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:360px}
+.sp-lang-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(232,220,200,0.2);color:var(--sand);padding:18px 14px;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s;font-family:inherit}
+.sp-lang-btn:hover{background:rgba(232,220,200,0.15);border-color:rgba(232,220,200,0.5);transform:translateY(-2px)}
+.sp-lang-btn .flag{font-size:26px;display:block;margin-bottom:6px}
+.sp-lang-btn .lname{font-size:15px;font-weight:500;display:block}
+.sp-lang-btn .lsub{font-size:11px;opacity:0.6;margin-top:2px;display:block}
+#app{height:100vh;display:flex;flex-direction:column}
+.header{background:var(--earth-dark);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 14px rgba(0,0,0,0.3)}
+.header-left{display:flex;align-items:center;gap:14px}
+.header-logo{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:21px;font-weight:300;letter-spacing:4px}
+.header-badge{background:rgba(232,220,200,0.15);border:1px solid rgba(232,220,200,0.25);color:var(--sand);padding:3px 11px;border-radius:12px;font-size:11px;letter-spacing:1px}
+.header-right{display:flex;gap:10px;align-items:center}
+.lang-flag{font-size:22px}
+.hdr-btn{background:rgba(232,220,200,0.12);border:1px solid rgba(232,220,200,0.22);color:var(--sand);padding:6px 14px;border-radius:18px;cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.hdr-btn:hover{background:rgba(232,220,200,0.22)}
+.tab-bar{display:flex;background:#3a2812;border-bottom:2px solid var(--earth-mid);flex-shrink:0}
+.tab-item{flex:1;padding:13px 6px;text-align:center;cursor:pointer;font-size:11px;color:rgba(232,220,200,0.45);border-bottom:3px solid transparent;transition:all 0.2s}
+.tab-item .ti{font-size:20px;display:block;margin-bottom:3px}
+.tab-item.active{color:var(--sand);border-bottom-color:var(--gold)}
+.tab-item:hover:not(.active){color:rgba(232,220,200,0.7)}
+.content{flex:1;overflow-y:auto;padding:18px}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-thumb{background:var(--earth);border-radius:3px}
+.section{display:none}
+.section.active{display:block}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--earth-dark);margin-bottom:4px;font-weight:300}
+.sec-sub{color:var(--warm-gray);font-size:12px;margin-bottom:18px;letter-spacing:0.5px}
+.card{background:#fff;border-radius:12px;border:1px solid rgba(139,111,71,0.14);box-shadow:0 2px 10px rgba(74,55,40,0.07);overflow:hidden;margin-bottom:14px}
+.card-head{background:linear-gradient(135deg,var(--earth-dark),var(--earth-mid));padding:14px 18px;display:flex;align-items:center;gap:12px}
+.card-head.ocean{background:linear-gradient(135deg,#243a45,var(--ocean))}
+.card-head .ch-icon{font-size:24px}
+.card-head .ch-title{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:18px;font-weight:300;letter-spacing:1px}
+.card-head .ch-sub{color:rgba(232,220,200,0.6);font-size:11px;margin-top:1px}
+.card-body{padding:16px 18px}
+.multi-results{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.multi-result{background:#fff;border:1px solid rgba(139,111,71,0.15);border-radius:10px;padding:14px 16px;box-shadow:0 2px 6px rgba(74,55,40,0.06)}
+.multi-result .mr-flag{font-size:18px;margin-bottom:4px;display:block}
+.multi-result .mr-lang{font-size:10px;color:var(--warm-gray);letter-spacing:1px;margin-bottom:6px;display:block}
+.multi-result .mr-text{font-size:14px;line-height:1.75;color:var(--charcoal)}
+.multi-result .mr-text.loading{color:var(--warm-gray);font-style:italic;font-size:13px}
+.btn{border:none;border-radius:9px;padding:11px 22px;cursor:pointer;font-family:inherit;font-size:14px;transition:all 0.2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:var(--earth-dark);color:var(--sand)}
+.btn-primary:hover{background:var(--earth-mid);transform:translateY(-1px)}
+.btn-success{background:var(--forest);color:#fff}
+.btn-success:hover{background:#3a5233}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:hover{background:#a07c28}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:7px}
+.textarea-jp{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:9px;padding:12px 14px;font-size:15px;font-family:inherit;background:var(--cream);color:var(--charcoal);resize:none;line-height:1.75;transition:border-color 0.2s}
+.textarea-jp:focus{outline:none;border-color:var(--earth);background:#fff}
+.tmpl-category{margin-bottom:22px}
+.tmpl-cat-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--earth-dark);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(139,111,71,0.2);display:flex;align-items:center;gap:8px}
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tmpl-card{background:#fff;border:1px solid rgba(139,111,71,0.14);border-radius:10px;padding:14px 16px;transition:all 0.2s;box-shadow:0 2px 8px rgba(74,55,40,0.06)}
+.tmpl-card:hover{background:var(--sand-light);border-color:var(--earth)}
+.tmpl-card .tc-tap{font-size:11px;color:var(--warm-gray);margin-bottom:4px;cursor:pointer}
+.tmpl-card .tc-text{font-size:14px;color:var(--charcoal);line-height:1.65;cursor:pointer}
+.tmpl-card .tc-actions{display:flex;gap:6px;margin-top:8px}
+.tc-edit-btn,.tc-del-btn{font-size:10px;padding:3px 9px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.tc-edit-btn{background:var(--sand-light);color:var(--earth-dark);border:1px solid var(--sand)}
+.tc-edit-btn:hover{background:var(--sand)}
+.tc-del-btn{background:#fde8e2;color:var(--danger);border:1px solid rgba(184,104,64,0.2)}
+.tc-del-btn:hover{background:#f5ccc2}
+.add-tmpl-form{background:var(--sand-light);border:1px solid var(--sand);border-radius:12px;padding:18px;margin-bottom:18px;display:none}
+.add-tmpl-form.show{display:block}
+.form-row{margin-bottom:12px}
+.form-row label{font-size:11px;color:var(--warm-gray);display:block;margin-bottom:4px;letter-spacing:1px}
+.form-row select{border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);width:100%}
+.form-row select:focus{outline:none;border-color:var(--earth)}
+.ft-input-wrap{position:relative;margin-bottom:12px}
+.ft-char-count{position:absolute;bottom:8px;right:12px;font-size:11px;color:var(--warm-gray)}
+.ft-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 160px)}
+.chat-lang-bar{background:var(--sand-light);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.chat-lang-bar .clb-label{font-size:11px;color:var(--warm-gray);letter-spacing:1px}
+.guest-lang-btn{padding:6px 14px;border-radius:16px;border:1px solid var(--sand);background:var(--cream);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s;display:flex;align-items:center;gap:5px}
+.guest-lang-btn.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.chat-messages{flex:1;overflow-y:auto;padding:6px 0;display:flex;flex-direction:column;gap:12px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--earth);border-radius:2px}
+.chat-msg{display:flex;gap:10px;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.chat-msg.staff{flex-direction:row-reverse}
+.chat-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px}
+.chat-msg.staff .chat-avatar{background:var(--earth-dark)}
+.chat-msg.guest .chat-avatar{background:var(--sand-light);border:2px solid var(--sand)}
+.chat-bubble-wrap{max-width:75%}
+.chat-msg.staff .chat-bubble-wrap{align-items:flex-end;display:flex;flex-direction:column}
+.chat-msg.guest .chat-bubble-wrap{align-items:flex-start;display:flex;flex-direction:column}
+.chat-bubble{padding:11px 15px;border-radius:14px;font-size:14px;line-height:1.75}
+.chat-msg.staff .chat-bubble{background:var(--earth-dark);color:var(--sand-light);border-radius:14px 14px 4px 14px}
+.chat-msg.guest .chat-bubble{background:#fff;color:var(--charcoal);border:1px solid rgba(139,111,71,0.15);border-radius:14px 14px 14px 4px}
+.cb-orig{font-size:11px;opacity:0.6;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.15)}
+.chat-msg.guest .cb-orig{border-top-color:rgba(0,0,0,0.08)}
+.cb-trans{font-size:13px;margin-top:4px;font-style:italic}
+.chat-time{font-size:10px;color:var(--warm-gray);margin-top:3px}
+.chat-msg.staff .chat-time{text-align:right}
+.chat-input-area{background:#fff;border-top:1px solid var(--sand);padding:12px 14px;flex-shrink:0}
+.chat-role-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.role-toggle{display:flex;background:var(--sand-light);border-radius:8px;padding:3px;border:1px solid var(--sand)}
+.rt-btn{padding:6px 14px;border-radius:6px;border:none;background:transparent;color:var(--warm-gray);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.rt-btn.active{background:var(--earth-dark);color:var(--sand)}
+.chat-input-row{display:flex;gap:8px;align-items:flex-end}
+.chat-textarea{flex:1;border:1px solid rgba(139,111,71,0.25);border-radius:9px;padding:9px 13px;font-size:14px;font-family:inherit;resize:none;background:var(--cream);color:var(--charcoal);max-height:90px;transition:border-color 0.2s;line-height:1.6}
+.chat-textarea:focus{outline:none;border-color:var(--earth);background:#fff}
+.chat-send-btn{background:var(--earth-dark);color:var(--sand);border:none;border-radius:9px;padding:9px 16px;font-size:20px;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.chat-send-btn:hover{background:var(--earth-mid);transform:scale(1.05)}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--earth-dark);color:var(--sand);padding:10px 22px;border-radius:20px;font-size:13px;z-index:2000;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(30,20,12,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-box{background:var(--cream);border-radius:14px;width:90vw;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,0.35);padding:26px 28px;transform:translateY(16px);transition:transform 0.25s}
+.modal-overlay.show .modal-box{transform:translateY(0)}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--earth-dark);margin-bottom:16px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.typing-dots{display:flex;gap:4px;align-items:center;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--warm-gray);animation:dot 1.2s infinite}
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@media(max-width:640px){.tmpl-grid{grid-template-columns:1fr}.multi-results{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="langSplash">
+  <div class="sp-logo">
+    <span class="ww">WASSA WASSA</span>
+    <span class="sub">Staff Communication Tool</span>
+  </div>
+  <div class="sp-role">ゲストの言語を選択してください</div>
+  <div class="sp-lang-grid">
+    <button class="sp-lang-btn" onclick="selectGuestLang('en')"><span class="flag">🇬🇧</span><span class="lname">English</span><span class="lsub">英語</span></button>
+    <button class="sp-lang-btn" onclick="selectGuestLang('zh-TW')"><span class="flag">🇹🇼</span><span class="lname">繁體中文</span><span class="lsub">台湾・香港</span></button>
+    <button class="sp-lang-btn" onclick="selectGuestLang('zh-CN')"><span class="flag">🇨🇳</span><span class="lname">简体中文</span><span class="lsub">中国大陸</span></button>
+    <button class="sp-lang-btn" onclick="selectGuestLang('ko')"><span class="flag">🇰🇷</span><span class="lname">한국어</span><span class="lsub">韓国語</span></button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-logo">WASSA WASSA</div>
+      <div class="header-badge">Staff Tool</div>
+    </div>
+    <div class="header-right">
+      <span id="guestLangFlag" class="lang-flag">🇬🇧</span>
+      <button class="hdr-btn" onclick="changeLang()">言語変更</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="showTab('template')" data-tab="template"><span class="ti">📋</span>テンプレ</div>
+    <div class="tab-item" onclick="showTab('freetrans')" data-tab="freetrans"><span class="ti">🔤</span>自由翻訳</div>
+    <div class="tab-item" onclick="showTab('chat')" data-tab="chat"><span class="ti">💬</span>チャット</div>
+  </div>
+
+  <div class="content" id="mainContent">
+
+    <!-- TEMPLATE TAB -->
+    <div class="section active" id="sec-template">
+      <div class="sec-title">テンプレート翻訳</div>
+      <div class="sec-sub">登録済みのフレーズを選んでゲストに見せる</div>
+
+      <div class="add-tmpl-form" id="addTmplForm">
+        <div class="form-row"><label>カテゴリ</label>
+          <select id="newCat">
+            <option value="greeting">👋 あいさつ・基本</option>
+            <option value="checkin">🗝 チェックイン / チェックアウト</option>
+            <option value="facility">🏡 施設案内</option>
+            <option value="food">🍽 お食事</option>
+            <option value="notice">⚠️ 注意事項</option>
+            <option value="other">📌 その他</option>
+          </select>
+        </div>
+        <div class="form-row"><label>日本語テキスト</label>
+          <textarea class="textarea-jp" id="newText" rows="3" placeholder="日本語でフレーズを入力..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn btn-success btn-sm" onclick="addTemplate()">✓ 追加</button>
+          <button class="btn btn-sm" style="background:var(--sand-light);color:var(--earth-dark)" onclick="toggleAddForm()">✕ キャンセル</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="toggleAddForm()">＋ テンプレート追加</button>
+      </div>
+
+      <div id="templateList"></div>
+    </div>
+
+    <!-- FREE TRANSLATION TAB -->
+    <div class="section" id="sec-freetrans">
+      <div class="sec-title">自由翻訳</div>
+      <div class="sec-sub">日本語を入力 → 翻訳 → ゲストに見せる</div>
+      <div class="card">
+        <div class="card-head ocean">
+          <span class="ch-icon">✍️</span>
+          <div><div class="ch-title">日本語入力</div><div class="ch-sub">入力後「翻訳する」を押してください</div></div>
+        </div>
+        <div class="card-body">
+          <div class="ft-input-wrap">
+            <textarea class="textarea-jp" id="freeInput" rows="4"
+              placeholder="ここに日本語で入力してください&#10;例：チェックインは16時からになります。"
+              oninput="updateCharCount()"></textarea>
+            <span class="ft-char-count" id="charCount">0文字</span>
+          </div>
+          <div class="ft-actions">
+            <button class="btn btn-primary" onclick="translateFree()">🌐 翻訳する</button>
+            <button class="btn btn-sm" style="background:var(--sand-light);color:var(--earth-dark)" onclick="clearFree()">✕ クリア</button>
+          </div>
+          <div id="freeResults" style="display:none">
+            <div style="font-size:12px;color:var(--warm-gray);margin-bottom:10px;letter-spacing:1px">▼ 翻訳結果 — ゲストに見せる</div>
+            <div class="multi-results" id="freeResultGrid"></div>
+            <div style="margin-top:12px">
+              <button class="btn btn-gold btn-sm" onclick="showGuestView()">📱 大画面でゲストに見せる</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full screen guest view -->
+      <div id="guestView" style="display:none;position:fixed;inset:0;z-index:900;background:linear-gradient(160deg,var(--earth-dark),var(--earth-mid));padding:40px 28px;overflow-y:auto">
+        <button onclick="hideGuestView()" style="position:fixed;top:16px;right:16px;background:rgba(232,220,200,0.2);border:1px solid rgba(232,220,200,0.4);color:var(--sand);padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;font-family:inherit;z-index:901">✕ 閉じる</button>
+        <div style="text-align:center;margin-bottom:30px">
+          <div style="font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:28px;letter-spacing:6px">WASSA WASSA</div>
+        </div>
+        <div id="guestViewContent"></div>
+      </div>
+    </div>
+
+    <!-- CHAT TAB -->
+    <div class="section" id="sec-chat">
+      <div class="chat-wrap">
+        <div class="chat-lang-bar">
+          <span class="clb-label">ゲスト言語：</span>
+          <button class="guest-lang-btn" onclick="changeChatLang('en')" data-cl="en">🇬🇧 EN</button>
+          <button class="guest-lang-btn" onclick="changeChatLang('zh-TW')" data-cl="zh-TW">🇹🇼 繁</button>
+          <button class="guest-lang-btn" onclick="changeChatLang('zh-CN')" data-cl="zh-CN">🇨🇳 简</button>
+          <button class="guest-lang-btn" onclick="changeChatLang('ko')" data-cl="ko">🇰🇷 한</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg staff">
+            <div class="chat-avatar">👩‍💼</div>
+            <div class="chat-bubble-wrap">
+              <div class="chat-bubble">
+                WASSA WASSAへようこそ！なんでもお気軽にどうぞ。
+                <div class="cb-orig">ゲスト言語への翻訳</div>
+                <div class="cb-trans" id="welcomeTrans"><div class="typing-dots"><span></span><span></span><span></span></div></div>
+              </div>
+              <div class="chat-time" id="welcomeTime"></div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-role-row">
+            <div class="role-toggle">
+              <button class="rt-btn active" onclick="setChatRole('staff')" id="btnStaff">👩‍💼 スタッフ（日）</button>
+              <button class="rt-btn" onclick="setChatRole('guest')" id="btnGuest">👤 ゲスト</button>
+            </div>
+            <button class="btn btn-sm" style="background:#fde8e2;color:var(--danger);border:1px solid rgba(184,104,64,0.2)" onclick="clearChat()">🗑 クリア</button>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-textarea" id="chatInput" rows="1" placeholder="日本語でメッセージを入力..." onkeydown="chatKeyDown(event)" oninput="autoResize(this)"></textarea>
+            <button class="chat-send-btn" onclick="sendChatMsg()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ テンプレート編集</div>
+    <div class="form-row"><label>カテゴリ</label>
+      <select id="editCat">
+        <option value="greeting">👋 あいさつ・基本</option>
+        <option value="checkin">🗝 チェックイン / チェックアウト</option>
+        <option value="facility">🏡 施設案内</option>
+        <option value="food">🍽 お食事</option>
+        <option value="notice">⚠️ 注意事項</option>
+        <option value="other">📌 その他</option>
+      </select>
+    </div>
+    <div class="form-row"><label>日本語テキスト</label>
+      <textarea class="textarea-jp" id="editText" rows="4"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" style="background:var(--sand-light);color:var(--earth-dark)" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-success btn-sm" onclick="saveEdit()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LANG_META={
+  'en':{flag:'🇬🇧',name:'English',label:'英語'},
+  'zh-TW':{flag:'🇹🇼',name:'繁體中文',label:'繁体中国語'},
+  'zh-CN':{flag:'🇨🇳',name:'简体中文',label:'簡体中国語'},
+  'ko':{flag:'🇰🇷',name:'한국어',label:'韓国語'}
+};
+let guestLang='en',chatRole='staff',editingId=null;
+let templates=[
+  {id:1,cat:'greeting',text:'WASSA WASSAへようこそ！お越しいただき、ありがとうございます。'},
+  {id:2,cat:'greeting',text:'ご不明な点がございましたら、お気軽にお声がけください。'},
+  {id:3,cat:'greeting',text:'ごゆっくりおくつろぎください。'},
+  {id:4,cat:'checkin',text:'チェックインは16時から、チェックアウトは10時までとなっております。'},
+  {id:5,cat:'checkin',text:'早めのチェックインはお受けできません。16時以降にお越しください。'},
+  {id:6,cat:'checkin',text:'レイトチェックアウトはお一人様1時間2,200円で承っております。12時までご利用いただけます。'},
+  {id:7,cat:'checkin',text:'キャンセルポリシーについて：7日以上前は無料、3〜6日前は50%、1〜2日前は80%、当日は100%のキャンセル料が発生します。'},
+  {id:8,cat:'facility',text:'露天風呂をご利用の際は、必ず水着をご着用ください。'},
+  {id:9,cat:'facility',text:'パティオはご自由にお使いください。ゆっくりおくつろぎください。'},
+  {id:10,cat:'facility',text:'洗濯機・乾燥機は共用でご利用いただけます。'},
+  {id:11,cat:'facility',text:'5月〜11月の間、夜にはお庭で45種類のホタルをご覧いただけます。'},
+  {id:12,cat:'food',text:'夕食は屋上テラスにてご提供いたします。お時間になりましたらお声がけします。'},
+  {id:13,cat:'food',text:'食物アレルギーがある場合は、ご到着3日前までにお知らせください。'},
+  {id:14,cat:'food',text:'台風などの悪天候の場合は、室内でのお食事となります。'},
+  {id:15,cat:'notice',text:'海でのご遊泳の際は、クラゲ対策にラッシュガードの着用をお勧めします。レンタルもございます。'},
+  {id:16,cat:'notice',text:'連泊の場合、お部屋の清掃はございません。何かご入用の場合はお申し付けください。'},
+  {id:17,cat:'notice',text:'ビーチパラソルとチェアの貸し出しをしております。1日1,100円（税込）です。'},
+  {id:18,cat:'notice',text:'台風時は停電になる場合がございます。あらかじめご了承ください。'},
+];
+const CAT_LABELS={
+  greeting:'👋 あいさつ・基本',checkin:'🗝 チェックイン / チェックアウト',
+  facility:'🏡 施設案内',food:'🍽 お食事',notice:'⚠️ 注意事項',other:'📌 その他'
+};
+
+async function translate(text,targetLang){
+  if(!text.trim())return'';
+  try{
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ja|${targetLang}`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(data.responseStatus===200)return data.responseData.translatedText;
+    return'(翻訳エラー)';
+  }catch(e){return'(ネットワークエラー)'}
+}
+
+async function translateAll(text){
+  return await Promise.all(Object.keys(LANG_META).map(async lang=>({lang,text:await translate(text,lang)})));
+}
+
+function selectGuestLang(lang){
+  guestLang=lang;
+  document.getElementById('langSplash').classList.add('hide');
+  document.getElementById('guestLangFlag').textContent=LANG_META[lang].flag;
+  updateChatLangUI();
+  translateWelcome();
+  updateGuestRoleLabel();
+  renderTemplates();
+}
+function changeLang(){document.getElementById('langSplash').classList.remove('hide')}
+function changeChatLang(lang){guestLang=lang;document.getElementById('guestLangFlag').textContent=LANG_META[lang].flag;updateChatLangUI();updateGuestRoleLabel()}
+function updateChatLangUI(){document.querySelectorAll('.guest-lang-btn').forEach(b=>b.classList.toggle('active',b.getAttribute('data-cl')===guestLang))}
+function updateGuestRoleLabel(){document.getElementById('btnGuest').textContent=`👤 ${LANG_META[guestLang].flag} ゲスト`}
+
+async function translateWelcome(){
+  const el=document.getElementById('welcomeTrans');
+  el.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>';
+  const t=await translate('WASSA WASSAへようこそ！なんでもお気軽にどうぞ。',guestLang);
+  el.textContent=t;
+  document.getElementById('welcomeTime').textContent=getTime();
+}
+
+function showTab(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  document.getElementById('mainContent').scrollTop=0;
+}
+
+function renderTemplates(){
+  const container=document.getElementById('templateList');
+  const cats=[...new Set(templates.map(t=>t.cat))];
+  container.innerHTML=cats.map(cat=>{
+    const items=templates.filter(t=>t.cat===cat);
+    return`<div class="tmpl-category">
+      <div class="tmpl-cat-title">${CAT_LABELS[cat]||cat}</div>
+      <div class="tmpl-grid">${items.map(item=>`
+        <div class="tmpl-card">
+          <div class="tc-tap" onclick="useTemplate(${item.id})">🌐 タップして翻訳・表示</div>
+          <div class="tc-text" onclick="useTemplate(${item.id})">${escHtml(item.text)}</div>
+          <div class="tc-actions">
+            <button class="tc-edit-btn" onclick="openEditModal(${item.id})">✏️ 編集</button>
+            <button class="tc-del-btn" onclick="deleteTemplate(${item.id})">✕</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function useTemplate(id){
+  const item=templates.find(t=>t.id===id);
+  if(!item)return;
+  showTab('freetrans');
+  document.getElementById('freeInput').value=item.text;
+  updateCharCount();
+  await translateFree();
+}
+
+function toggleAddForm(){
+  const f=document.getElementById('addTmplForm');
+  f.classList.toggle('show');
+  if(f.classList.contains('show'))document.getElementById('newText').focus();
+}
+
+function addTemplate(){
+  const cat=document.getElementById('newCat').value;
+  const text=document.getElementById('newText').value.trim();
+  if(!text){showToast('テキストを入力してください');return}
+  const newId=Math.max(...templates.map(t=>t.id),0)+1;
+  templates.push({id:newId,cat,text});
+  document.getElementById('newText').value='';
+  document.getElementById('addTmplForm').classList.remove('show');
+  renderTemplates();
+  showToast('✓ テンプレートを追加しました');
+}
+
+function deleteTemplate(id){
+  if(!confirm('このテンプレートを削除しますか？'))return;
+  templates=templates.filter(t=>t.id!==id);
+  renderTemplates();
+  showToast('削除しました');
+}
+
+function openEditModal(id){
+  const item=templates.find(t=>t.id===id);
+  if(!item)return;
+  editingId=id;
+  document.getElementById('editCat').value=item.cat;
+  document.getElementById('editText').value=item.text;
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('show');editingId=null}
+function saveEdit(){
+  if(!editingId)return;
+  const item=templates.find(t=>t.id===editingId);
+  if(item){item.cat=document.getElementById('editCat').value;item.text=document.getElementById('editText').value.trim()}
+  closeEditModal();renderTemplates();showToast('✓ 保存しました');
+}
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeEditModal()});
+
+function updateCharCount(){document.getElementById('charCount').textContent=document.getElementById('freeInput').value.length+'文字'}
+function clearFree(){document.getElementById('freeInput').value='';document.getElementById('freeResults').style.display='none';updateCharCount()}
+
+async function translateFree(){
+  const text=document.getElementById('freeInput').value.trim();
+  if(!text){showToast('テキストを入力してください');return}
+  document.getElementById('freeResults').style.display='block';
+  const grid=document.getElementById('freeResultGrid');
+  grid.innerHTML=Object.keys(LANG_META).map(lang=>`
+    <div class="multi-result">
+      <span class="mr-flag">${LANG_META[lang].flag}</span>
+      <span class="mr-lang">${LANG_META[lang].name}</span>
+      <div class="mr-text loading"><div class="typing-dots"><span></span><span></span><span></span></div></div>
+    </div>`).join('');
+  const results=await translateAll(text);
+  grid.innerHTML=results.map(r=>`
+    <div class="multi-result">
+      <span class="mr-flag">${LANG_META[r.lang].flag}</span>
+      <span class="mr-lang">${LANG_META[r.lang].name}</span>
+      <div class="mr-text">${escHtml(r.text)}</div>
+    </div>`).join('');
+}
+
+function showGuestView(){
+  const cards=document.querySelectorAll('#freeResultGrid .multi-result');
+  if(!cards.length)return;
+  let mainText='';
+  cards.forEach(c=>{
+    if(c.querySelector('.mr-lang').textContent===LANG_META[guestLang].name){
+      mainText=c.querySelector('.mr-text').textContent;
+    }
+  });
+  const others=[];
+  cards.forEach(c=>{
+    const lang=c.querySelector('.mr-lang').textContent;
+    if(lang!==LANG_META[guestLang].name){
+      others.push(`<div style="background:rgba(255,255,255,0.05);border-radius:9px;padding:10px 16px;margin-top:8px;font-size:13px;color:rgba(232,220,200,0.65)">${escHtml(c.querySelector('.mr-text').textContent)}</div>`);
+    }
+  });
+  document.getElementById('guestViewContent').innerHTML=`
+    <div style="text-align:center">
+      <div style="font-size:22px;margin-bottom:12px">${LANG_META[guestLang].flag}</div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:16px;padding:28px 22px;margin-bottom:18px">
+        <div style="font-size:24px;line-height:1.85;color:var(--sand-light)">${escHtml(mainText)}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:14px 18px;margin-bottom:8px">
+        <div style="font-size:11px;color:rgba(232,220,200,0.4);letter-spacing:2px;margin-bottom:6px">JAPANESE / 日本語</div>
+        <div style="font-size:14px;color:rgba(232,220,200,0.65);line-height:1.75">${escHtml(document.getElementById('freeInput').value)}</div>
+      </div>
+      ${others.join('')}
+    </div>`;
+  document.getElementById('guestView').style.display='block';
+}
+function hideGuestView(){document.getElementById('guestView').style.display='none'}
+
+function setChatRole(role){
+  chatRole=role;
+  document.getElementById('btnStaff').classList.toggle('active',role==='staff');
+  document.getElementById('btnGuest').classList.toggle('active',role==='guest');
+  document.getElementById('chatInput').placeholder=role==='staff'?'日本語でメッセージを入力...':`${LANG_META[guestLang].name}でメッセージを入力...`;
+}
+
+async function sendChatMsg(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text)return;
+  input.value='';autoResize(input);
+  if(chatRole==='staff'){
+    appendChatBubble(text,'staff','翻訳中...',true);
+    const t=await translate(text,guestLang);
+    const bubbles=document.querySelectorAll('#chatMessages .chat-msg.staff .cb-trans');
+    if(bubbles.length)bubbles[bubbles.length-1].textContent=t;
+  }else{
+    const srcLang=guestLang;
+    appendChatBubble(text,'guest','翻訳中...',true);
+    const t=await translate(text,'ja');
+    const bubbles=document.querySelectorAll('#chatMessages .chat-msg.guest .cb-trans');
+    if(bubbles.length)bubbles[bubbles.length-1].textContent=`（日本語：${t}）`;
+  }
+}
+
+function appendChatBubble(text,role,transPlaceholder,loading){
+  const container=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className=`chat-msg ${role}`;
+  const origLabel=role==='staff'?'↓ ゲスト言語翻訳':'↓ 日本語訳';
+  div.innerHTML=`
+    <div class="chat-avatar">${role==='staff'?'👩‍💼':'👤'}</div>
+    <div class="chat-bubble-wrap">
+      <div class="chat-bubble">
+        ${escHtml(text)}
+        <div class="cb-orig">${origLabel}</div>
+        <div class="cb-trans">${loading?'<div class="typing-dots"><span></span><span></span><span></span></div>':escHtml(transPlaceholder||'')}</div>
+      </div>
+      <div class="chat-time">${getTime()}</div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+}
+
+function chatKeyDown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMsg()}}
+function clearChat(){if(!confirm('チャット履歴をクリアしますか？'))return;document.getElementById('chatMessages').innerHTML='';showToast('クリアしました')}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px'}
+function getTime(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}
+function escHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+</script>
+</body>
+</html>
