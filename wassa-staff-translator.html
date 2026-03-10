@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WASSA WASSA — Staff Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sand:#e8dcc8;--sand-light:#f5f0e8;--earth:#8b6f47;--earth-dark:#4a3728;
+  --earth-mid:#6b4f38;--ocean:#3d6b7a;--forest:#4e6b44;--cream:#faf8f3;
+  --charcoal:#2c2825;--warm-gray:#9a8878;--gold:#c4973a;--danger:#8b3a2a;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);color:var(--charcoal)}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:3000;background:linear-gradient(160deg,#1a0f08 0%,#3a2510 50%,#1a2820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;transition:opacity 0.7s}
+#splash.hide{opacity:0;pointer-events:none}
+.sp-logo .ww{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:50px;font-weight:300;letter-spacing:10px;display:block;text-align:center}
+.sp-logo .sub{font-family:'Cormorant Garamond',serif;color:var(--warm-gray);font-size:13px;letter-spacing:5px;font-style:italic;margin-top:6px;display:block;text-align:center}
+.sp-div{width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--sand),transparent)}
+.sp-prompt{font-family:'Cormorant Garamond',serif;color:var(--sand-light);font-size:16px;letter-spacing:3px;font-style:italic}
+.sp-langs{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:360px}
+.sp-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(232,220,200,0.2);color:var(--sand);padding:18px 14px;border-radius:12px;cursor:pointer;text-align:center;transition:all 0.25s;font-family:inherit}
+.sp-btn:hover{background:rgba(232,220,200,0.14);border-color:rgba(232,220,200,0.5);transform:translateY(-2px)}
+.sp-btn .flag{font-size:26px;display:block;margin-bottom:6px}
+.sp-btn .lname{font-size:15px;font-weight:500;display:block}
+.sp-btn .lsub{font-size:11px;opacity:0.55;margin-top:2px;display:block}
+
+/* APP */
+#app{height:100vh;display:flex;flex-direction:column}
+.header{background:var(--earth-dark);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 16px rgba(0,0,0,0.3)}
+.hd-left{display:flex;align-items:center;gap:10px}
+.hd-logo{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:20px;font-weight:300;letter-spacing:4px}
+.hd-badge{background:rgba(232,220,200,0.14);border:1px solid rgba(232,220,200,0.2);color:var(--sand);padding:2px 10px;border-radius:10px;font-size:10px;letter-spacing:1px}
+.hd-lang{display:flex;align-items:center;gap:6px;background:rgba(232,220,200,0.1);border:1px solid rgba(232,220,200,0.2);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--sand);font-size:12px;font-family:inherit;transition:all 0.2s}
+.hd-lang:hover{background:rgba(232,220,200,0.2)}
+
+/* TAB BAR - scrollable */
+.tab-bar{display:flex;background:#3a2812;border-bottom:2px solid var(--earth-mid);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-item{flex:0 0 auto;padding:10px 12px;text-align:center;cursor:pointer;font-size:10px;color:rgba(232,220,200,0.4);border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap;min-width:70px}
+.tab-item .ti{font-size:18px;display:block;margin-bottom:2px}
+.tab-item.active{color:var(--sand);border-bottom-color:var(--gold)}
+.tab-item:hover:not(.active){color:rgba(232,220,200,0.7)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:14px 16px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--earth);border-radius:3px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* COMMON */
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--earth-dark);margin-bottom:2px;font-weight:300}
+.sec-sub{color:var(--warm-gray);font-size:11px;margin-bottom:14px}
+
+.btn{border:none;border-radius:8px;padding:9px 18px;cursor:pointer;font-family:inherit;font-size:13px;transition:all 0.2s;display:inline-flex;align-items:center;gap:5px}
+.btn-dark{background:var(--earth-dark);color:var(--sand)}
+.btn-dark:hover{background:var(--earth-mid)}
+.btn-green{background:var(--forest);color:#fff}
+.btn-green:hover{background:#3a5233}
+.btn-ghost{background:var(--sand-light);color:var(--earth-dark);border:1px solid var(--sand)}
+.btn-ghost:hover{background:var(--sand)}
+.btn-red{background:#fde8e2;color:var(--danger);border:1px solid rgba(184,104,64,0.15)}
+.btn-red:hover{background:#f5ccc2}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+.btn-gold{background:var(--gold);color:#fff}
+
+.form-lbl{font-size:11px;color:var(--warm-gray);display:block;margin-bottom:4px;letter-spacing:1px}
+.form-sel{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);margin-bottom:10px}
+.form-sel:focus{outline:none;border-color:var(--earth)}
+.form-ta{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);resize:none;line-height:1.75;transition:border-color 0.2s}
+.form-ta:focus{outline:none;border-color:var(--earth);background:#fff}
+.form-inp{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);transition:border-color 0.2s;margin-bottom:8px}
+.form-inp:focus{outline:none;border-color:var(--earth);background:#fff}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--earth-dark);color:var(--sand);padding:9px 20px;border-radius:18px;font-size:13px;z-index:9000;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.modal-ov{position:fixed;inset:0;z-index:4000;background:rgba(30,20,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.modal-ov.show{opacity:1;pointer-events:all}
+.modal-box{background:var(--cream);border-radius:14px;width:92vw;max-width:560px;max-height:88vh;overflow-y:auto;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.35);transform:translateY(14px);transition:transform 0.25s}
+.modal-box::-webkit-scrollbar{width:4px}
+.modal-box::-webkit-scrollbar-thumb{background:var(--earth);border-radius:3px}
+.modal-ov.show .modal-box{transform:translateY(0)}
+.modal-ttl{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--earth-dark);margin-bottom:14px}
+.modal-act{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+.dots{display:flex;gap:4px;align-items:center}
+.dots span{width:6px;height:6px;border-radius:50%;background:var(--warm-gray);animation:dot 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+/* ADD FORM */
+.add-form{background:var(--sand-light);border:1px solid var(--sand);border-radius:12px;padding:14px;margin-bottom:12px;display:none}
+.add-form.show{display:block}
+
+/* ===== PHRASE LIST ===== */
+.phrase-list{display:flex;flex-direction:column;gap:8px}
+.phrase-card{background:#fff;border:1px solid rgba(139,111,71,0.14);border-radius:11px;overflow:hidden;box-shadow:0 2px 7px rgba(74,55,40,0.06);transition:box-shadow 0.2s}
+.phrase-card:hover{box-shadow:0 3px 14px rgba(74,55,40,0.11)}
+
+/* drag handle */
+.phrase-drag{background:var(--sand-light);border-bottom:1px solid rgba(139,111,71,0.1);padding:5px 14px;display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none}
+.phrase-drag:active{cursor:grabbing}
+.drag-icon{color:var(--warm-gray);font-size:14px;letter-spacing:2px}
+.drag-order{font-size:10px;color:var(--warm-gray)}
+.phrase-card.dragging{opacity:0.5;border:2px dashed var(--earth)}
+.phrase-card.drag-over{border-top:3px solid var(--gold)}
+
+.phrase-main{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;transition:background 0.15s}
+.phrase-main:hover{background:var(--sand-light)}
+.phrase-jp{font-size:14px;line-height:1.7;color:var(--charcoal);flex:1}
+.phrase-arrow{color:var(--gold);font-size:20px;flex-shrink:0;transition:transform 0.2s;line-height:1}
+.phrase-card.open .phrase-arrow{transform:rotate(90deg)}
+
+.phrase-trans{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.phrase-card.open .phrase-trans{max-height:400px}
+.trans-inner{padding:0 14px 12px}
+.trans-box{background:linear-gradient(135deg,#edf5ed,#e6f1e6);border:1px solid rgba(78,107,68,0.2);border-left:4px solid var(--forest);border-radius:9px;padding:12px 14px;margin-bottom:8px}
+.tb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tb-lang-info{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--warm-gray)}
+.tb-copy{background:var(--forest);color:#fff;border:none;border-radius:5px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit}
+.tb-text{font-size:19px;line-height:1.8;color:var(--charcoal)}
+
+.show-big-btn{width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;font-family:inherit;font-size:13px;background:linear-gradient(135deg,var(--earth-dark),var(--earth-mid));color:var(--sand);display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;box-shadow:0 2px 10px rgba(74,55,40,0.22)}
+.show-big-btn:hover{opacity:0.9;transform:translateY(-1px)}
+
+.phrase-actions{display:flex;gap:5px;padding:5px 14px 10px}
+.pa-btn{font-size:11px;padding:3px 9px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.pa-edit{background:var(--sand-light);color:var(--earth-dark);border:1px solid var(--sand)}
+.pa-edit:hover{background:var(--sand)}
+.pa-del{background:#fde8e2;color:var(--danger);border:1px solid rgba(184,104,64,0.15)}
+.pa-del:hover{background:#f5ccc2}
+
+/* ===== FOOD INGREDIENT DB ===== */
+.db-section{margin-top:20px;border-top:2px solid var(--sand);padding-top:16px}
+.db-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--earth-dark);margin-bottom:4px}
+.db-sub{font-size:11px;color:var(--warm-gray);margin-bottom:12px}
+.db-cat-nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.db-cat-btn{padding:7px 13px;border-radius:18px;border:1px solid var(--sand);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.db-cat-btn.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.db-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.db-card{background:#fff;border-radius:10px;border:1px solid rgba(139,111,71,0.13);overflow:hidden;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 7px rgba(74,55,40,0.06)}
+.db-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(74,55,40,0.14)}
+.db-img{width:100%;height:130px;object-fit:cover;background:var(--sand-light);display:block}
+.db-img-placeholder{width:100%;height:130px;background:linear-gradient(135deg,var(--sand-light),var(--sand));display:flex;align-items:center;justify-content:center;font-size:36px}
+.db-name{font-size:13px;font-weight:500;color:var(--earth-dark);padding:8px 10px 2px;line-height:1.3}
+.db-name-ja{font-size:10px;color:var(--warm-gray);padding:0 10px 8px}
+.db-add-btn{background:linear-gradient(135deg,var(--sand-light),var(--sand));border:2px dashed rgba(139,111,71,0.3);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:185px;cursor:pointer;transition:all 0.2s;color:var(--warm-gray);font-size:12px;gap:5px}
+.db-add-btn:hover{border-color:var(--earth);color:var(--earth);background:var(--sand)}
+.db-add-btn .add-icon{font-size:24px}
+
+/* Ingredient detail modal */
+.ing-modal-img{width:100%;height:240px;object-fit:cover;border-radius:10px;margin-bottom:14px;background:var(--sand-light);display:flex;align-items:center;justify-content:center;font-size:64px}
+.ing-lang-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.ing-lang-tab{padding:5px 12px;border-radius:14px;border:1px solid var(--sand);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.ing-lang-tab.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.ing-desc-box{background:linear-gradient(135deg,#edf5ed,#e6f1e6);border:1px solid rgba(78,107,68,0.2);border-left:4px solid var(--forest);border-radius:9px;padding:13px 15px;min-height:80px;font-size:15px;line-height:1.85;color:var(--charcoal)}
+.ing-desc-box .loading{color:var(--warm-gray);font-style:italic}
+
+/* Edit ingredient form */
+.ing-edit-wrap{display:none}
+.ing-edit-wrap.show{display:block}
+.lang-desc-row{margin-bottom:10px}
+.lang-desc-row label{font-size:11px;color:var(--warm-gray);display:flex;align-items:center;gap:5px;margin-bottom:4px;letter-spacing:1px}
+
+/* Free trans */
+.ft-card{background:#fff;border-radius:12px;border:1px solid rgba(139,111,71,0.14);overflow:hidden;box-shadow:0 2px 10px rgba(74,55,40,0.07)}
+.ft-head{background:linear-gradient(135deg,var(--earth-dark),var(--earth-mid));padding:12px 16px;display:flex;align-items:center;gap:10px}
+.fh-icon{font-size:20px}
+.fh-title{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:17px;font-weight:300}
+.fh-sub{color:rgba(232,220,200,0.6);font-size:11px;margin-top:1px}
+.ft-body{padding:14px 16px}
+.ft-wrap{position:relative;margin-bottom:10px}
+.ft-ta{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:9px;padding:11px 13px;font-size:14px;font-family:inherit;background:var(--cream);color:var(--charcoal);resize:none;line-height:1.75;transition:border-color 0.2s}
+.ft-ta:focus{outline:none;border-color:var(--earth);background:#fff}
+.ft-cc{position:absolute;bottom:8px;right:11px;font-size:10px;color:var(--warm-gray)}
+.ft-result{display:none;margin-top:4px}
+.ft-res-box{background:linear-gradient(135deg,#edf5ed,#e6f1e6);border:1px solid rgba(78,107,68,0.2);border-left:4px solid var(--forest);border-radius:9px;padding:14px 16px;margin-bottom:10px}
+.ft-res-lang{font-size:11px;color:var(--warm-gray);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.ft-res-text{font-size:20px;line-height:1.85;color:var(--charcoal)}
+.ft-res-jp{margin-top:10px;padding-top:10px;border-top:1px solid rgba(78,107,68,0.15);font-size:12px;color:var(--warm-gray);line-height:1.7}
+
+/* GUEST VIEW */
+#guestView{display:none;position:fixed;inset:0;z-index:5000;background:linear-gradient(160deg,#1a0f08,#3a2510 50%,#1a2820);overflow-y:auto}
+.gv-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(232,220,200,0.1)}
+.gv-logo{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:20px;letter-spacing:5px}
+.gv-close{background:rgba(232,220,200,0.12);border:1px solid rgba(232,220,200,0.25);color:var(--sand);padding:7px 16px;border-radius:18px;cursor:pointer;font-size:13px;font-family:inherit}
+.gv-body{padding:28px 24px;display:flex;flex-direction:column;align-items:center;min-height:calc(100vh - 60px)}
+.gv-flag{font-size:38px;margin-bottom:14px;text-align:center;display:block}
+.gv-main-box{background:rgba(255,255,255,0.1);border-radius:18px;padding:30px 26px;text-align:center;width:100%;max-width:680px;margin-bottom:18px}
+.gv-text{font-size:28px;line-height:1.9;color:var(--sand-light)}
+.gv-jp-box{background:rgba(255,255,255,0.06);border-radius:12px;padding:13px 18px;width:100%;max-width:680px;text-align:center}
+.gv-jp-lbl{font-size:10px;color:rgba(232,220,200,0.4);letter-spacing:3px;display:block;margin-bottom:5px}
+.gv-jp-text{font-size:15px;color:rgba(232,220,200,0.65);line-height:1.8}
+
+/* INGREDIENT GUEST VIEW */
+.gv-ing-img{width:100%;max-width:680px;height:220px;object-fit:cover;border-radius:16px;margin-bottom:18px;background:rgba(255,255,255,0.1)}
+.gv-ing-img-placeholder{width:100%;max-width:680px;height:220px;border-radius:16px;margin-bottom:18px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:72px}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 158px)}
+.chat-hint{background:linear-gradient(135deg,#f5f0e8,#ede8dc);border:1px solid rgba(196,151,58,0.25);border-left:4px solid var(--gold);border-radius:9px;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.75;color:#5a4530}
+.chat-lang-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.clr-lbl{font-size:11px;color:var(--warm-gray);letter-spacing:1px}
+.clang-btn{padding:5px 12px;border-radius:14px;border:1px solid var(--sand);background:var(--cream);color:var(--earth-dark);cursor:pointer;font-size:11px;font-family:inherit;transition:all 0.2s}
+.clang-btn.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.chat-msgs{flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:11px}
+.chat-msgs::-webkit-scrollbar{width:4px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--earth);border-radius:2px}
+.cmsg{display:flex;gap:9px;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.cmsg.staff{flex-direction:row-reverse}
+.cavatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px}
+.cmsg.staff .cavatar{background:var(--earth-dark)}
+.cmsg.guest .cavatar{background:var(--sand-light);border:2px solid var(--sand)}
+.cbwrap{max-width:76%}
+.cmsg.staff .cbwrap{align-items:flex-end;display:flex;flex-direction:column}
+.cmsg.guest .cbwrap{align-items:flex-start;display:flex;flex-direction:column}
+.cbubble{padding:10px 14px;border-radius:13px;font-size:13px;line-height:1.75}
+.cmsg.staff .cbubble{background:var(--earth-dark);color:var(--sand-light);border-radius:13px 13px 4px 13px}
+.cmsg.guest .cbubble{background:#fff;color:var(--charcoal);border:1px solid rgba(139,111,71,0.15);border-radius:13px 13px 13px 4px}
+.cborig{font-size:10px;opacity:0.5;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.12)}
+.cmsg.guest .cborig{border-top-color:rgba(0,0,0,0.07)}
+.cbtrans{font-size:12px;margin-top:2px;font-style:italic;opacity:0.85}
+.ctime{font-size:10px;color:var(--warm-gray);margin-top:2px}
+.cmsg.staff .ctime{text-align:right}
+.chat-input-area{background:#fff;border-top:1px solid var(--sand);padding:10px 12px;flex-shrink:0}
+.role-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.role-tog{display:flex;background:var(--sand-light);border-radius:7px;padding:3px;border:1px solid var(--sand)}
+.rb{padding:6px 12px;border-radius:5px;border:none;background:transparent;color:var(--warm-gray);cursor:pointer;font-size:11px;font-family:inherit;transition:all 0.2s;white-space:nowrap}
+.rb.active{background:var(--earth-dark);color:var(--sand)}
+.ci-row{display:flex;gap:7px;align-items:flex-end}
+.ci-ta{flex:1;border:1px solid rgba(139,111,71,0.25);border-radius:9px;padding:8px 12px;font-size:13px;font-family:inherit;resize:none;background:var(--cream);color:var(--charcoal);max-height:80px;transition:border-color 0.2s;line-height:1.6}
+.ci-ta:focus{outline:none;border-color:var(--earth);background:#fff}
+.ci-send{background:var(--earth-dark);color:var(--sand);border:none;border-radius:9px;padding:8px 14px;font-size:18px;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.ci-send:hover{background:var(--earth-mid)}
+
+@media(min-width:600px){.db-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* WIFI SECTION */
+.wifi-section{margin-bottom:20px}
+.wifi-title{font-family:"Cormorant Garamond",serif;font-size:20px;color:var(--earth-dark);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.wifi-cards{display:flex;flex-direction:column;gap:12px}
+.wifi-card{background:#fff;border:1px solid rgba(139,111,71,0.14);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(74,55,40,0.06)}
+.wifi-card-head{background:linear-gradient(135deg,var(--ocean),#2a5060);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.wifi-room{font-family:"Cormorant Garamond",serif;color:var(--sand);font-size:16px;font-weight:300;letter-spacing:1px}
+.wifi-edit-btn{background:rgba(232,220,200,0.15);border:1px solid rgba(232,220,200,0.25);color:var(--sand);padding:4px 12px;border-radius:12px;cursor:pointer;font-size:11px;font-family:inherit}
+.wifi-body{padding:14px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.wifi-info{flex:1;min-width:140px}
+.wifi-ssid-lbl{font-size:10px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:3px}
+.wifi-ssid{font-size:15px;color:var(--earth-dark);font-weight:500;margin-bottom:10px}
+.wifi-pass-lbl{font-size:10px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:3px}
+.wifi-pass{font-size:18px;color:var(--charcoal);font-family:monospace;letter-spacing:2px;word-break:break-all}
+.wifi-qr-wrap{flex-shrink:0;background:white;padding:8px;border-radius:8px;border:1px solid var(--sand)}
+.wifi-qr-wrap canvas,.wifi-qr-wrap img{display:block}
+.wifi-show-btn{width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:13px;background:linear-gradient(135deg,var(--ocean),#2a5060);color:white;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;transition:all 0.2s}
+.wifi-show-btn:hover{opacity:0.9}
+/* WiFi edit modal */
+.wifi-modal-form{display:flex;flex-direction:column;gap:2px}
+/* Guest WiFi full screen */
+.gv-wifi-room{font-family:"Cormorant Garamond",serif;font-size:28px;color:var(--sand);letter-spacing:2px;text-align:center;margin-bottom:20px}
+.gv-qr-center{display:flex;justify-content:center;margin-bottom:20px}
+.gv-qr-box{background:white;padding:16px;border-radius:16px;display:inline-block}
+.gv-wifi-details{background:rgba(255,255,255,0.1);border-radius:14px;padding:20px 24px;width:100%;max-width:480px;text-align:center}
+.gv-wifi-row{margin-bottom:12px}
+.gv-wifi-row-lbl{font-size:11px;color:rgba(232,220,200,0.5);letter-spacing:3px;margin-bottom:4px}
+.gv-wifi-row-val{font-size:20px;color:var(--sand-light);font-family:monospace;letter-spacing:2px;word-break:break-all}
+.gv-wifi-hint{font-size:13px;color:rgba(232,220,200,0.5);margin-top:14px;line-height:1.7}
+
+/* SWIPE NAV in guest view */
+.gv-nav{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:680px;margin-top:20px;gap:10px}
+.gv-nav-btn{background:rgba(232,220,200,0.12);border:1px solid rgba(232,220,200,0.25);color:var(--sand);width:52px;height:52px;border-radius:50%;font-size:22px;cursor:pointer;flex-shrink:0;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.gv-nav-btn:hover{background:rgba(232,220,200,0.25)}
+.gv-nav-btn:disabled{opacity:0.2;cursor:default}
+.gv-nav-counter{font-family:'Cormorant Garamond',serif;color:rgba(232,220,200,0.5);font-size:14px;letter-spacing:2px;text-align:center;flex:1}
+.gv-swipe-hint{font-size:11px;color:rgba(232,220,200,0.3);text-align:center;margin-top:8px;letter-spacing:1px}
+#guestView{touch-action:pan-y}
+
+/* EXPORT */
+.export-bar{background:linear-gradient(135deg,#1e3828,var(--forest));padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.export-bar-txt{color:rgba(232,220,200,0.7);font-size:11px;letter-spacing:0.5px}
+.export-btn{background:var(--gold);color:#fff;border:none;border-radius:18px;padding:7px 16px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500;transition:all 0.2s;white-space:nowrap}
+.export-btn:hover{background:#a07c28;transform:translateY(-1px)}
+
+/* PHOTO UPLOAD */
+.photo-upload-wrap{margin-bottom:10px}
+.photo-src-row{display:flex;gap:8px;margin-bottom:8px}
+.photo-src-btn{flex:1;padding:10px 8px;border-radius:9px;border:1.5px dashed rgba(139,111,71,0.3);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;text-align:center;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.photo-src-btn:hover{border-color:var(--earth);background:var(--sand)}
+.photo-src-btn .psi{font-size:22px}
+.photo-preview-img{width:100%;height:130px;object-fit:cover;border-radius:8px;display:block;margin-top:4px;border:1px solid var(--sand)}
+
+/* INGREDIENT KEYWORD LINK */
+.ing-keyword{background:rgba(78,107,68,0.15);color:var(--forest);border-bottom:2px solid var(--forest);cursor:pointer;border-radius:3px;padding:0 3px;font-weight:500;transition:all 0.15s;white-space:nowrap}
+.ing-keyword:hover{background:rgba(78,107,68,0.3)}
+/* translation status badge */
+.trans-badge{font-size:10px;padding:2px 7px;border-radius:8px;display:inline-block;margin-bottom:6px}
+.trans-badge.stored{background:#e8f5e9;color:var(--forest);border:1px solid rgba(78,107,68,0.3)}
+.trans-badge.live{background:var(--sand-light);color:var(--warm-gray);border:1px solid var(--sand)}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-logo">
+    <span class="ww">WASSA WASSA</span>
+    <span class="sub">Staff Communication Tool</span>
+  </div>
+  <div class="sp-div"></div>
+  <div class="sp-prompt">ゲストの言語を選択</div>
+  <div class="sp-langs">
+    <button class="sp-btn" onclick="selectLang('en')"><span class="flag">🇬🇧</span><span class="lname">English</span><span class="lsub">英語</span></button>
+    <button class="sp-btn" onclick="selectLang('zh-TW')"><span class="flag">🇹🇼</span><span class="lname">繁體中文</span><span class="lsub">台湾・香港</span></button>
+    <button class="sp-btn" onclick="selectLang('zh-CN')"><span class="flag">🇨🇳</span><span class="lname">简体中文</span><span class="lsub">中国大陸</span></button>
+    <button class="sp-btn" onclick="selectLang('ko')"><span class="flag">🇰🇷</span><span class="lname">한국어</span><span class="lsub">韓国語</span></button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="hd-left">
+      <div class="hd-logo">WASSA WASSA</div>
+      <div class="hd-badge">Staff Tool</div>
+    </div>
+    <button class="hd-lang" onclick="document.getElementById('splash').classList.remove('hide')">
+      <span id="hdFlag">🇬🇧</span><span id="hdName">English</span><span style="opacity:0.5;font-size:10px">▼</span>
+    </button>
+  </div>
+
+  <div class="export-bar">
+    <span class="export-bar-txt" id="saveStatus">📲 自動保存 ON</span>
+    <div style="display:flex;gap:8px">
+      <button class="export-btn" onclick="exportHTML()" style="background:var(--forest)">📥 バックアップ</button>
+      <button class="export-btn" onclick="clearAllData()">🗑 リセット</button>
+    </div>
+  </div>
+  <div class="tab-bar" id="tabBar">
+    <div class="tab-item active" onclick="showTab('greet')" data-t="greet"><span class="ti">👋</span>ご挨拶</div>
+    <div class="tab-item" onclick="showTab('floor1')" data-t="floor1"><span class="ti">🏠</span>1F案内</div>
+    <div class="tab-item" onclick="showTab('floor2')" data-t="floor2"><span class="ti">🗝</span>2F・チェックイン</div>
+    <div class="tab-item" onclick="showTab('dinner')" data-t="dinner"><span class="ti">🌙</span>夕食</div>
+    <div class="tab-item" onclick="showTab('breakfast')" data-t="breakfast"><span class="ti">☀️</span>朝食</div>
+    <div class="tab-item" onclick="showTab('checkout')" data-t="checkout"><span class="ti">🚪</span>チェックアウト</div>
+    <div class="tab-item" onclick="showTab('notice')" data-t="notice"><span class="ti">⚠️</span>注意事項</div>
+    <div class="tab-item" onclick="showTab('free')" data-t="free"><span class="ti">🔤</span>自由入力</div>
+    <div class="tab-item" onclick="showTab('deluxe')" data-t="deluxe"><span class="ti">🛏</span>デラックス</div>
+    <div class="tab-item" onclick="showTab('chat')" data-t="chat"><span class="ti">💬</span>チャット</div>
+  </div>
+
+  <div class="content" id="mainContent">
+    <!-- panels injected by JS -->
+    <div class="tab-panel active" id="tp-greet"></div>
+    <div class="tab-panel" id="tp-floor1"></div>
+    <div class="tab-panel" id="tp-floor2"></div>
+    <div class="tab-panel" id="tp-dinner"></div>
+    <div class="tab-panel" id="tp-breakfast"></div>
+    <div class="tab-panel" id="tp-checkout"></div>
+    <div class="tab-panel" id="tp-notice"></div>
+    <div class="tab-panel" id="tp-deluxe"></div>
+    <div class="tab-panel" id="tp-free">
+      <div class="sec-title">🔤 自由入力翻訳</div>
+      <div class="sec-sub">日本語を入力してゲストの言語に即翻訳</div>
+      <div class="ft-card">
+        <div class="ft-head"><span class="fh-icon">✍️</span><div><div class="fh-title">日本語 → <span id="ftLangSpan">English</span></div><div class="fh-sub">入力後「翻訳」を押す</div></div></div>
+        <div class="ft-body">
+          <div class="ft-wrap">
+            <textarea class="ft-ta" id="ftInput" rows="4" placeholder="ここに日本語で入力..." oninput="ftCC()"></textarea>
+            <span class="ft-cc" id="ftCC">0文字</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="btn btn-dark btn-sm" onclick="doFT()">🌐 翻訳する</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearFT()">✕ クリア</button>
+          </div>
+          <div class="ft-result" id="ftResult">
+            <div class="ft-res-box">
+              <div class="ft-res-lang" id="ftResLang"></div>
+              <div class="ft-res-text" id="ftResText"></div>
+              <div class="ft-res-jp" id="ftResJP"></div>
+            </div>
+            <button class="show-big-btn" onclick="showFTGuest()">📱 大画面でゲストに見せる</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tp-chat">
+      <div class="chat-wrap">
+        <div class="chat-hint"><strong>💡 使い方：</strong> スタッフが日本語入力 → 自動翻訳 → タブレットをゲストに向ける。ゲストが返事する時は「👤ゲスト」に切り替えて入力してもらう。</div>
+        <div class="chat-lang-row">
+          <span class="clr-lbl">ゲスト言語：</span>
+          <button class="clang-btn" onclick="switchCL('en')" data-cl="en">🇬🇧 EN</button>
+          <button class="clang-btn" onclick="switchCL('zh-TW')" data-cl="zh-TW">🇹🇼 繁</button>
+          <button class="clang-btn" onclick="switchCL('zh-CN')" data-cl="zh-CN">🇨🇳 简</button>
+          <button class="clang-btn" onclick="switchCL('ko')" data-cl="ko">🇰🇷 한</button>
+        </div>
+        <div class="chat-msgs" id="chatMsgs">
+          <div class="cmsg staff">
+            <div class="cavatar">👩‍💼</div>
+            <div class="cbwrap">
+              <div class="cbubble">WASSA WASSAへようこそ！なんでもどうぞ。<div class="cborig">↓ ゲスト言語</div><div class="cbtrans" id="welcomeTrans"><div class="dots"><span></span><span></span><span></span></div></div></div>
+              <div class="ctime" id="welcomeTime"></div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="role-row">
+            <div class="role-tog">
+              <button class="rb active" onclick="setRole('staff')" id="rbStaff">👩‍💼 スタッフ（日）</button>
+              <button class="rb" onclick="setRole('guest')" id="rbGuest">👤 ゲスト</button>
+            </div>
+            <button class="btn btn-red btn-sm" onclick="clearChat()">🗑</button>
+          </div>
+          <div class="ci-row">
+            <textarea class="ci-ta" id="ciInput" rows="1" placeholder="日本語でメッセージ..." onkeydown="ciKD(event)" oninput="autoResize(this)"></textarea>
+            <button class="ci-send" onclick="sendChat()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GUEST FULL VIEW -->
+<div id="guestView">
+  <div class="gv-hdr">
+    <div class="gv-logo">WASSA WASSA</div>
+    <button class="gv-close" onclick="closeGV()">✕ 閉じる</button>
+  </div>
+  <div class="gv-body" id="gvBody"></div>
+  <div class="gv-nav" id="gvNav" style="display:none">
+    <button class="gv-nav-btn" id="gvPrev" onclick="gvNavigate(-1)">‹</button>
+    <div class="gv-nav-counter" id="gvCounter"></div>
+    <button class="gv-nav-btn" id="gvNext" onclick="gvNavigate(1)">›</button>
+  </div>
+  <div class="gv-swipe-hint" id="gvHint" style="display:none">← swipe →</div>
+</div>
+
+<!-- EDIT PHRASE MODAL -->
+<div class="modal-ov" id="editModal">
+  <div class="modal-box">
+    <div class="modal-ttl">✏️ フレーズ編集</div>
+    <label class="form-lbl">日本語テキスト</label>
+    <textarea class="form-ta" id="editText" rows="3" style="margin-bottom:8px" oninput="onEditTextChange()"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <label class="form-lbl" style="margin:0">翻訳テキスト（ゲスト表示用）</label>
+      <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateEditField()">🌐 翻訳して入力</button>
+    </div>
+    <textarea class="form-ta" id="editTrans" rows="3" placeholder="翻訳テキストをここに入力（空の場合はリアルタイム翻訳）" style="margin-bottom:12px;border-left:4px solid var(--forest)"></textarea>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="savePhrase()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- INGREDIENT MODAL -->
+<div class="modal-ov" id="ingModal">
+  <div class="modal-box">
+    <div class="modal-ttl" id="ingModalTitle">食材詳細</div>
+
+    <!-- View mode -->
+    <div id="ingViewMode">
+      <div id="ingModalImgWrap"></div>
+      <div style="margin-bottom:10px">
+        <div class="ing-lang-tabs" id="ingLangTabs"></div>
+        <div class="ing-desc-box" id="ingDescBox"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gold btn-sm" onclick="showIngGuest()">📱 ゲストに見せる</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleIngEdit()">✏️ 編集</button>
+        <button class="btn btn-red btn-sm" onclick="deleteIng()">✕ 削除</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeIngModal()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- Edit mode -->
+    <div id="ingEditMode" class="ing-edit-wrap">
+      <label class="form-lbl">写真URL（ネット画像URL、または空欄で絵文字表示）</label>
+      <input class="form-inp" id="ingEditImg" placeholder="https://...jpg">
+      <label class="form-lbl">絵文字（写真なしの場合）</label>
+      <input class="form-inp" id="ingEditEmoji" placeholder="🐟">
+      <label class="form-lbl">名前（日本語）</label>
+      <input class="form-inp" id="ingEditName">
+      <label class="form-lbl">名前（英語）</label>
+      <input class="form-inp" id="ingEditNameEn">
+      <label class="form-lbl">カテゴリ</label>
+      <select class="form-sel" id="ingEditCat">
+        <option value="seafood">🐟 魚介類</option>
+        <option value="veggie">🥬 野菜</option>
+        <option value="fruit">🍋 フルーツ</option>
+        <option value="traditional">🍱 伝統食</option>
+      </select>
+      <div class="lang-desc-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="form-lbl" style="margin:0">🇯🇵 日本語説明</label>
+          <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAllIngDesc()">🌐 全言語に翻訳</button>
+        </div>
+        <textarea class="form-ta" id="ingEditJa" rows="2"></textarea>
+      </div>
+      <div class="lang-desc-row"><label class="form-lbl">🇬🇧 English</label><textarea class="form-ta" id="ingEditEn" rows="2"></textarea></div>
+      <div class="lang-desc-row"><label class="form-lbl">🇹🇼 繁體中文</label><textarea class="form-ta" id="ingEditZhTW" rows="2"></textarea></div>
+      <div class="lang-desc-row"><label class="form-lbl">🇨🇳 简体中文</label><textarea class="form-ta" id="ingEditZhCN" rows="2"></textarea></div>
+      <div class="lang-desc-row"><label class="form-lbl">🇰🇷 한국어</label><textarea class="form-ta" id="ingEditKo" rows="2"></textarea></div>
+      <div class="modal-act">
+        <button class="btn btn-ghost btn-sm" onclick="toggleIngEdit()">キャンセル</button>
+        <button class="btn btn-green btn-sm" onclick="saveIng()">💾 保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD INGREDIENT MODAL -->
+<div class="modal-ov" id="addIngModal">
+  <div class="modal-box">
+    <div class="modal-ttl">🌿 食材を追加</div>
+    <label class="form-lbl">写真</label>
+    <div class="photo-upload-wrap">
+      <div class="photo-src-row">
+        <label class="photo-src-btn" for="aIngFile">
+          <span class="psi">📷</span><span>カメラロールから選ぶ</span>
+          <input type="file" id="aIngFile" accept="image/*" style="display:none" onchange="onPhotoFile('aIng',this)">
+        </label>
+        <div class="photo-src-btn" onclick="togglePhotoUrl('aIng')">
+          <span class="psi">🔗</span><span>URLで指定</span>
+        </div>
+      </div>
+      <input class="form-inp" id="aIngImg" placeholder="https://...jpg" style="display:none" oninput="onPhotoUrl('aIng',this)">
+      <div id="aIngPreviewWrap"></div>
+    </div>
+    <label class="form-lbl">絵文字</label>
+    <input class="form-inp" id="aIngEmoji" placeholder="🐟">
+    <label class="form-lbl">名前（日本語）</label>
+    <input class="form-inp" id="aIngName" placeholder="グルクン">
+    <label class="form-lbl">名前（英語）</label>
+    <input class="form-inp" id="aIngNameEn" placeholder="Gurukun">
+    <label class="form-lbl">カテゴリ</label>
+    <select class="form-sel" id="aIngCat">
+      <option value="seafood">🐟 魚介類</option>
+      <option value="veggie">🥬 野菜</option>
+      <option value="fruit">🍋 フルーツ</option>
+      <option value="traditional">🍱 伝統食</option>
+    </select>
+    <div class="lang-desc-row">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <label class="form-lbl" style="margin:0">🇯🇵 日本語説明</label>
+        <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAllNewIngDesc()">🌐 全言語に翻訳</button>
+      </div>
+      <textarea class="form-ta" id="aIngJa" rows="2" placeholder="説明を入力..."></textarea>
+    </div>
+    <div class="lang-desc-row"><label class="form-lbl">🇬🇧 English</label><textarea class="form-ta" id="aIngEn" rows="2"></textarea></div>
+    <div class="lang-desc-row"><label class="form-lbl">🇹🇼 繁體中文</label><textarea class="form-ta" id="aIngZhTW" rows="2"></textarea></div>
+    <div class="lang-desc-row"><label class="form-lbl">🇨🇳 简体中文</label><textarea class="form-ta" id="aIngZhCN" rows="2"></textarea></div>
+    <div class="lang-desc-row"><label class="form-lbl">🇰🇷 한국어</label><textarea class="form-ta" id="aIngKo" rows="2"></textarea></div>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeAddIng()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="saveNewIng()">✓ 追加</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- WIFI EDIT MODAL -->
+<div class="modal-ov" id="wifiModal">
+  <div class="modal-box">
+    <div class="modal-ttl" id="wifiModalTitle">📶 Wi-Fi設定</div>
+    <div class="wifi-modal-form">
+      <label class="form-lbl">部屋名</label>
+      <input class="form-inp" id="wfRoom" style="margin-bottom:10px">
+      <label class="form-lbl">SSID（ネットワーク名）</label>
+      <input class="form-inp" id="wfSsid" style="margin-bottom:10px">
+      <label class="form-lbl">パスワード</label>
+      <input class="form-inp" id="wfPass" style="margin-bottom:10px">
+      <label class="form-lbl">暗号化方式</label>
+      <select class="form-sel" id="wfSec">
+        <option value="WPA">WPA/WPA2</option>
+        <option value="WEP">WEP</option>
+        <option value="nopass">なし（オープン）</option>
+      </select>
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeWifiModal()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="saveWifi()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const LANGS={
+  'en':    {flag:'🇬🇧',name:'English'},
+  'zh-TW': {flag:'🇹🇼',name:'繁體中文'},
+  'zh-CN': {flag:'🇨🇳',name:'简体中文'},
+  'ko':    {flag:'🇰🇷',name:'한국어'},
+};
+
+const TABS={
+  greet:    {label:'👋 ご挨拶',     hasDB:false},
+  floor1:   {label:'🏠 1F案内',     hasDB:false},
+  floor2:   {label:'🗝 2F・チェックイン', hasDB:false},
+  dinner:   {label:'🌙 夕食',       hasDB:true},
+  breakfast:{label:'☀️ 朝食',       hasDB:true},
+  checkout: {label:'🚪 チェックアウト', hasDB:false},
+  notice:   {label:'⚠️ 注意事項',   hasDB:false},
+  deluxe:   {label:'🛏 デラックスツイン', hasDB:false},
+};
+
+// Phrases per tab (ordered array)
+let phrases = {
+  greet:[
+    {id:1,text:'WASSA WASSAへようこそ！お越しいただき、ありがとうございます。'},
+    {id:2,text:'ご不明な点がございましたら、お気軽にお声がけください。'},
+    {id:3,text:'ごゆっくりおくつろぎください。'},
+  ],
+  floor1:[
+    {id:10,text:'こちらが1階のパティオです。自由にご利用ください。'},
+    {id:11,text:'洗濯機・乾燥機はこちらでご利用いただけます。'},
+    {id:12,text:'共用のバスルームはこちらです。ご利用の際はノックをお願いします。'},
+  ],
+  floor2:[
+    {id:20,text:'チェックインは16時からとなっております。'},
+    {id:21,text:'こちらがお部屋の鍵です。'},
+    {id:22,text:'屋上テラスはこちらの階段から上がれます。'},
+    {id:23,text:'2階のお部屋はデラックスツインです。専用の浴室・キッチンがございます。'},
+  ],
+  dinner:[
+    {id:30,text:'夕食は屋上テラスにてご提供いたします。'},
+    {id:31,text:'お時間になりましたらお声がけいたします。'},
+    {id:32,text:'悪天候の場合は室内でのお食事となります。'},
+    {id:33,text:'本日の食材は地元で獲れた新鮮なものを使用しています。'},
+    {id:34,text:'食物アレルギーがある場合はお申し付けください。'},
+  ],
+  breakfast:[
+    {id:40,text:'朝食はパティオにてご提供いたします。'},
+    {id:41,text:'朝食のご準備ができましたらお声がけします。'},
+    {id:42,text:'朝食には地元の野菜や魚を使ったお料理をご用意しています。'},
+  ],
+  checkout:[
+    {id:50,text:'チェックアウトは10時までとなっております。'},
+    {id:51,text:'お荷物はチェックアウト後もお預かりできます。'},
+    {id:52,text:'レイトチェックアウトはお一人様1時間2,200円で承っております。'},
+    {id:53,text:'またのお越しを心よりお待ちしております。'},
+  ],
+  deluxe:[
+    {id:70,text:'こちらがデラックスツインルームです。2階全体がお客様専用のプライベート空間となっております。'},
+    {id:71,text:'専用の浴室・シャワールームはこちらです。'},
+    {id:72,text:'専用キッチンにはIHコンロ・冷蔵庫・電子レンジをご用意しています。'},
+    {id:73,text:'専用のパティオからは庭の景色をお楽しみいただけます。'},
+    {id:74,text:'屋上テラスへはこちらの階段からアクセスできます。'},
+    {id:75,text:'お部屋のWi-FiパスワードはWi-Fiカードに記載しています。'},
+    {id:76,text:'ご不明な点はいつでもお声がけください。'},
+  ],
+  notice:[
+    {id:60,text:'露天風呂をご利用の際は、必ず水着をご着用ください。'},
+    {id:61,text:'海でのご遊泳の際は、クラゲ対策にラッシュガードをお勧めします。'},
+    {id:62,text:'連泊の場合、お部屋の清掃はございません。'},
+    {id:63,text:'台風時は停電になる場合がございます。'},
+    {id:64,text:'ビーチパラソルとチェアの貸し出しは1日1,100円（税込）です。'},
+  ],
+};
+
+// Ingredient DB
+let ingredients = [
+  {id:1,cat:'seafood',emoji:'🐟',img:'',name:'グルクン',nameEn:'Gurukun (Banana Fish)',
+   ja:'グルクンは沖縄の県魚。珊瑚礁に生息し、淡白で上品な味わい。唐揚げや刺身で楽しまれる。',
+   en:'Gurukun (double-lined fusilier) is the official fish of Okinawa, found in coral reef waters. Its white flesh is mild and sweet, often served as sashimi or deep-fried whole.',
+   'zh-TW':'Gurukun是冲繩的縣魚，棲息於珊瑚礁。魚肉鮮甜，常以生魚片或整條油炸方式享用。',
+   'zh-CN':'Gurukun是冲绳的县鱼，栖息于珊瑚礁。鱼肉鲜甜，常以生鱼片或整条油炸方式享用。',
+   ko:'구루쿤은 오키나와의 현어(縣魚). 산호초에 서식하며 담백하고 고급스러운 맛. 튀김이나 사시미로 즐긴다.'},
+  {id:2,cat:'seafood',emoji:'🦞',img:'',name:'伊勢海老',nameEn:'Spiny Lobster (Ise-ebi)',
+   ja:'沖縄近海の温暖な海で育つ伊勢海老は、身が引き締まり甘みが強い。刺身・バター焼きで絶品。',
+   en:'Spiny lobster (Ise-ebi) thrives in Okinawa\'s warm waters. The flesh is firm and wonderfully sweet. Best enjoyed as sashimi or grilled with butter.',
+   'zh-TW':'在沖繩溫暖海域生長的龍蝦，肉質緊實、甜味濃郁。最適合做成生魚片或奶油燒烤。',
+   'zh-CN':'在冲绳温暖海域生长的龙虾，肉质紧实、甜味浓郁。最适合做成生鱼片或黄油烧烤。',
+   ko:'오키나와 근해의 따뜻한 바다에서 자란 닭새우. 살이 단단하고 단맛이 강하다. 사시미·버터구이로 절품.'},
+  {id:3,cat:'seafood',emoji:'🐙',img:'',name:'タコ',nameEn:'Octopus (Tako)',
+   ja:'沖縄の清澄な海で獲れるタコは肉厚で旨みたっぷり。刺身・酢の物・炒め物に使われる。',
+   en:'Octopus from Okinawa\'s clear waters is thick and full of umami. Used in sashimi, vinegared salads, and stir-fries.',
+   'zh-TW':'在沖繩清澈海域捕獲的章魚，肉厚鮮味十足。可做成生魚片、醋拌菜或炒菜。',
+   'zh-CN':'在冲绳清澈海域捕获的章鱼，肉厚鲜味十足。可做成生鱼片、醋拌菜或炒菜。',
+   ko:'오키나와의 맑은 바다에서 잡은 문어. 두툼하고 감칠맛이 풍부. 사시미·초무침·볶음에 사용.'},
+  {id:4,cat:'veggie',emoji:'🥬',img:'',name:'ゴーヤー',nameEn:'Bitter Melon (Goya)',
+   ja:'沖縄を代表するイボイボの緑の野菜。独特の苦みはビタミンCが豊富で健康食材。ゴーヤーチャンプルーに欠かせない。',
+   en:'The iconic bumpy green vegetable of Okinawa. Its distinctive bitterness is packed with Vitamin C. Essential in Goya Champuru stir-fry.',
+   'zh-TW':'沖繩代表性的凸凹綠色蔬菜。獨特的苦味富含維生素C，是苦瓜炒什錦的必備食材。',
+   'zh-CN':'冲绳代表性的凸凹绿色蔬菜。独特的苦味富含维生素C，是苦瓜炒什锦的必备食材。',
+   ko:'오키나와를 대표하는 울퉁불퉁한 초록 채소. 독특한 쓴맛에 비타민C 풍부. 고야 찬푸루에 필수.'},
+  {id:5,cat:'veggie',emoji:'🍠',img:'',name:'紅芋',nameEn:'Purple Sweet Potato (Beni-Imo)',
+   ja:'鮮やかな紫色が美しいサツマイモ。アントシアニンが豊富で甘みが強い。タルト・アイスクリームに大人気。',
+   en:'A brilliantly purple sweet potato rich in anthocyanins with a strong natural sweetness. Famous in Okinawan tarts and ice cream.',
+   'zh-TW':'色彩鮮豔的紫色地瓜，富含花青素且甜味濃郁。在沖繩塔和冰淇淋中大受歡迎。',
+   'zh-CN':'色彩鲜艳的紫色地瓜，富含花青素且甜味浓郁。在冲绳塔和冰淇淋中大受欢迎。',
+   ko:'선명한 보라색이 아름다운 고구마. 안토시아닌이 풍부하고 단맛이 강하다. 타르트·아이스크림으로 인기.'},
+  {id:6,cat:'veggie',emoji:'🌿',img:'',name:'ハンダマ',nameEn:'Handama (Okinawan Spinach)',
+   ja:'沖縄の伝統野菜。葉の表は緑、裏は紫で美しい。鉄分・ポリフェノールが豊富。おひたし・炒め物に。',
+   en:'A traditional Okinawan vegetable with green on top and purple underneath. Rich in iron and polyphenols. Used in blanched salads and stir-fries.',
+   'zh-TW':'沖繩的傳統蔬菜。葉片正面為綠色、背面為紫色，非常美麗。富含鐵質和多酚。常用於涼拌或炒菜。',
+   'zh-CN':'冲绳的传统蔬菜。叶片正面为绿色、背面为紫色，非常美丽。富含铁质和多酚。常用于凉拌或炒菜。',
+   ko:'오키나와 전통 채소. 잎 앞면은 초록, 뒷면은 보라색으로 아름답다. 철분·폴리페놀 풍부. 무침·볶음에.'},
+  {id:7,cat:'fruit',emoji:'🍋',img:'',name:'シークヮーサー',nameEn:'Shikuwasa (Okinawan Lime)',
+   ja:'沖縄原産の小さな柑橘類。さわやかな酸味とノビレチン（抗酸化成分）が豊富。ドレッシングや飲み物に。',
+   en:'A small citrus native to Okinawa with a refreshing sourness and rich in nobiletin antioxidants. Used in dressings, drinks, and sauces.',
+   'zh-TW':'沖繩原產的小型柑橘。清爽的酸味和豐富的橙皮苷（抗氧化成分）。用於調味醬、飲料等。',
+   'zh-CN':'冲绳原产的小型柑橘。清爽的酸味和丰富的橙皮苷（抗氧化成分）。用于调味酱、饮料等。',
+   ko:'오키나와 원산지의 작은 감귤. 상큼한 신맛과 노빌레틴(항산화 성분) 풍부. 드레싱·음료에.'},
+  {id:8,cat:'fruit',emoji:'🌺',img:'',name:'ドラゴンフルーツ',nameEn:'Dragon Fruit (Pitaya)',
+   ja:'沖縄でも栽培されるトロピカルフルーツ。淡白な甘みとシャキシャキした食感。βカロテン・鉄分が豊富。',
+   en:'A tropical fruit grown in Okinawa with a mild sweetness and refreshing crunch. Rich in beta-carotene and iron.',
+   'zh-TW':'沖繩也有栽培的熱帶水果。清淡的甜味和爽脆的口感。富含β-胡蘿蔔素和鐵質。',
+   'zh-CN':'冲绳也有栽培的热带水果。清淡的甜味和爽脆的口感。富含β-胡萝卜素和铁质。',
+   ko:'오키나와에서도 재배되는 트로피컬 과일. 담백한 단맛과 아삭한 식감. β-카로틴·철분 풍부.'},
+  {id:9,cat:'traditional',emoji:'🥢',img:'',name:'ゴーヤーチャンプルー',nameEn:'Goya Champuru',
+   ja:'ゴーヤー・豆腐・豚肉・卵を炒めた沖縄の定番家庭料理。「チャンプルー」は方言で「混ぜこぜ」の意味。',
+   en:'"Champuru" means "mixed together" in Okinawan dialect. This classic stir-fry combines bitter melon, tofu, pork, and egg in a hearty home-cooked dish.',
+   'zh-TW':'用苦瓜、豆腐、豬肉、雞蛋炒成的沖繩經典家常菜。「チャンプルー」在方言中意為「混合在一起」。',
+   'zh-CN':'用苦瓜、豆腐、猪肉、鸡蛋炒成的冲绳经典家常菜。「チャンプルー」在方言中意为「混合在一起」。',
+   ko:'고야·두부·돼지고기·계란을 볶은 오키나와 정통 가정요리. \'찬푸루\'는 방언으로 \'섞다\'의 의미.'},
+  {id:10,cat:'traditional',emoji:'🍖',img:'',name:'ラフテー',nameEn:'Rafute (Braised Pork Belly)',
+   ja:'豚の三枚肉を泡盛と醤油でじっくり煮込んだ沖縄の伝統料理。とろとろに柔らかく濃厚な味わい。',
+   en:'A traditional Okinawan dish of pork belly braised slowly in awamori (local spirit) and soy sauce. Meltingly tender with a rich, deep flavor.',
+   'zh-TW':'用泡盛（沖繩燒酒）和醬油慢燉豬五花肉的沖繩傳統料理。口感軟嫩入口即化，風味濃郁。',
+   'zh-CN':'用泡盛（冲绳烧酒）和酱油慢炖猪五花肉的冲绳传统料理。口感软嫩入口即化，风味浓郁。',
+   ko:'돼지 삼겹살을 아와모리(오키나와 소주)와 간장으로 천천히 조린 오키나와 전통요리. 부드럽고 깊은 맛.'},
+  {id:11,cat:'traditional',emoji:'🍜',img:'',name:'沖縄そば',nameEn:'Okinawa Soba',
+   ja:'豚骨とカツオのスープに太めの平打ち麺が入った沖縄の定番料理。ソーキ（スペアリブ）乗せが人気。',
+   en:'Okinawa\'s iconic noodle dish featuring thick flat noodles in a pork and bonito broth, typically topped with Soki (braised spare ribs).',
+   'zh-TW':'用豬骨和鰹魚熬製湯頭，搭配粗平麵條的沖繩定番料理。加上ソーキ（排骨）是最受歡迎的吃法。',
+   'zh-CN':'用猪骨和鲣鱼熬制汤头，搭配粗平面条的冲绳经典料理。加上ソーキ（排骨）是最受欢迎的吃法。',
+   ko:'돼지뼈와 가쓰오 육수에 두툼한 납작 면을 넣은 오키나와의 정통 요리. 소키(스페어립) 토핑이 인기.'},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let guestLang = 'en';
+let chatRole = 'staff';
+let editingPhraseId = null;
+let editingPhraseTab = null;
+let selectedIngId = null;
+let activeDbCat = 'seafood';
+
+// ============================================================
+// WIFI DATA
+// ============================================================
+let wifiNetworks = [
+  {id:'std',  room:'Superior Twin Room (1F)',  ssid:'WASSAWASSA',  pass:'wassa2024', sec:'WPA'},
+  {id:'dlx',  room:'Deluxe Twin Room (2F)',    ssid:'WASSAWASSA',  pass:'wassa2024', sec:'WPA'},
+  {id:'roof', room:'Roof Terrace',               ssid:'WASSAWASSA',  pass:'wassa2024', sec:'WPA'},
+];
+let editingWifiId = null;
+
+let lastFTjp = '', lastFTtrans = '';
+let gvTab = null, gvPhraseIds = null, gvCurrentIdx = -1;
+// Touch swipe
+let gvTouchX = null;
+let currentIngLang = 'ja'; // for modal lang tabs
+
+// ============================================================
+// TRANSLATION
+// ============================================================
+async function translate(text, toLang) {
+  if (!text.trim()) return '';
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ja|${toLang}`);
+    const d = await r.json();
+    return d.responseStatus === 200 ? d.responseData.translatedText : '(翻訳エラー)';
+  } catch(e) { return '(ネットワークエラー)'; }
+}
+async function translateFrom(text, fromLang) {
+  if (!text.trim()) return '';
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|ja`);
+    const d = await r.json();
+    return d.responseStatus === 200 ? d.responseData.translatedText : '(翻訳エラー)';
+  } catch(e) { return '(ネットワークエラー)'; }
+}
+
+// ============================================================
+// INIT / LANG SELECT
+// ============================================================
+function selectLang(lang) {
+  // Load saved data first
+  loadFromStorage();
+  guestLang = lang;
+  document.getElementById('splash').classList.add('hide');
+  document.getElementById('hdFlag').textContent = LANGS[lang].flag;
+  document.getElementById('hdName').textContent = LANGS[lang].name;
+  document.getElementById('ftLangSpan').textContent = LANGS[lang].name;
+  updateChatLangBtns();
+  document.getElementById('rbGuest').textContent = `👤 ${LANGS[lang].flag} ゲスト`;
+  translateWelcome();
+  // Build all panels
+  Object.keys(TABS).forEach(t => buildPanel(t));
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('tp-' + name).classList.add('active');
+  document.querySelector(`[data-t="${name}"]`).classList.add('active');
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+// ============================================================
+// BUILD PHRASE PANEL
+// ============================================================
+function buildPanel(tab) {
+  const cfg = TABS[tab];
+  if (!cfg) return;
+  const el = document.getElementById('tp-' + tab);
+  if (!el) return;
+
+  let html = `
+    <div class="sec-title">${cfg.label}</div>
+    <div class="sec-sub">フレーズをタップ → 翻訳 → ゲストに見せる ／ ドラッグで順番変更</div>
+    <div class="add-form" id="af-${tab}">
+      <label class="form-lbl">日本語テキスト</label>
+      <textarea class="form-ta" id="nt-${tab}" rows="3" placeholder="日本語でフレーズを入力..." style="margin-bottom:8px"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label class="form-lbl" style="margin:0">翻訳テキスト（任意）</label>
+        <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAddField('${tab}')">🌐 翻訳して入力</button>
+      </div>
+      <textarea class="form-ta" id="nt-trans-${tab}" rows="3" placeholder="空の場合はリアルタイム翻訳" style="margin-bottom:10px;border-left:4px solid var(--forest)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-green btn-sm" onclick="addPhrase('${tab}')">✓ 追加</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAdd('${tab}')">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-dark btn-sm" onclick="toggleAdd('${tab}')">＋ フレーズ追加</button>
+    </div>
+    <div class="phrase-list" id="pl-${tab}"></div>`;
+
+  if (tab === 'floor2') {
+    html += '<div style="margin-top:20px;border-top:2px solid var(--sand);padding-top:16px">'
+          + '<div style="font-family:Cormorant Garamond,serif;font-size:20px;color:var(--earth-dark);margin-bottom:12px">&#x1F4F6; Wi-Fi</div>'
+          + '<div id="wifi-section-floor2"></div>'
+          + '</div>';
+  }
+
+  if (cfg.hasDB) {
+    html += `
+      <div class="db-section">
+        <div class="db-title">🌿 沖縄食材データベース</div>
+        <div class="db-sub">食材をタップして説明をゲストに見せる</div>
+        <div class="db-cat-nav" id="dcn-${tab}">
+          <button class="db-cat-btn active" onclick="switchDbCat('${tab}','seafood')" data-dc="${tab}-seafood">🐟 魚介類</button>
+          <button class="db-cat-btn" onclick="switchDbCat('${tab}','veggie')" data-dc="${tab}-veggie">🥬 野菜</button>
+          <button class="db-cat-btn" onclick="switchDbCat('${tab}','fruit')" data-dc="${tab}-fruit">🍋 フルーツ</button>
+          <button class="db-cat-btn" onclick="switchDbCat('${tab}','traditional')" data-dc="${tab}-traditional">🍱 伝統食</button>
+        </div>
+        <div class="db-grid" id="dg-${tab}"></div>
+      </div>`;
+  }
+
+  el.innerHTML = html;
+  renderPhrases(tab);
+  if (cfg.hasDB) renderDB(tab, 'seafood');
+  if (tab === 'floor2') buildWifiSection(tab);
+}
+
+// ============================================================
+// PHRASES
+// ============================================================
+function renderPhrases(tab) {
+  const list = document.getElementById('pl-' + tab);
+  if (!list) return;
+  const items = phrases[tab] || [];
+  if (!items.length) {
+    list.innerHTML = '<div style="color:var(--warm-gray);font-size:13px;padding:16px 0;text-align:center">フレーズがありません。追加してください。</div>';
+    return;
+  }
+  list.innerHTML = items.map((item, idx) => `
+    <div class="phrase-card" id="pc-${item.id}" draggable="true"
+      ondragstart="dragStart(event,'${tab}',${idx})"
+      ondragover="dragOver(event)"
+      ondrop="dragDrop(event,'${tab}',${idx})"
+      ondragend="dragEnd(event)">
+      <div class="phrase-drag">
+        <span class="drag-icon">⠿⠿⠿</span>
+        <span class="drag-order">${idx + 1} / ${items.length}</span>
+      </div>
+      <div class="phrase-main" onclick="togglePhrase(${item.id},'${tab}')">
+        <div class="phrase-jp">${escHtml(item.text)}</div>
+        <div class="phrase-arrow">›</div>
+      </div>
+      <div class="phrase-trans" id="pt-${item.id}">
+        <div class="trans-inner">
+          <div class="trans-box">
+            <div class="tb-head">
+              <div class="tb-lang-info"><span>${LANGS[guestLang].flag}</span><span>${LANGS[guestLang].name}</span></div>
+              <button class="tb-copy" onclick="copyTrans(${item.id})">コピー</button>
+            </div>
+            <span class="trans-badge live" id="tbadge-${item.id}" style="display:${item.trans?'inline-block':'none'}">${item.trans?'💾 保存済み翻訳':''}</span>
+            <div class="tb-text" id="tbt-${item.id}"></div>
+          </div>
+          <button class="show-big-btn" onclick="showBig(${item.id},'${tab}')">📱 大画面でゲストに見せる</button>
+        </div>
+      </div>
+      <div class="phrase-actions">
+        <button class="pa-btn pa-edit" onclick="openEditModal(${item.id},'${tab}')">✏️ 編集</button>
+        <button class="pa-btn pa-del" onclick="delPhrase(${item.id},'${tab}')">✕ 削除</button>
+      </div>
+    </div>`).join('');
+}
+
+// ============================================================
+// DRAG & DROP (ordering)
+// ============================================================
+let dragSrcIdx = null;
+function dragStart(e, tab, idx) {
+  dragSrcIdx = idx;
+  e.dataTransfer.setData('tab', tab);
+  e.currentTarget.classList.add('dragging');
+}
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragDrop(e, tab, idx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcIdx === null || dragSrcIdx === idx) return;
+  const arr = phrases[tab];
+  const moved = arr.splice(dragSrcIdx, 1)[0];
+  arr.splice(idx, 0, moved);
+  renderPhrases(tab);
+  saveToStorage();
+  dragSrcIdx = null;
+}
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+// ============================================================
+// TOGGLE / TRANSLATE PHRASE
+// ============================================================
+async function togglePhrase(id, tab) {
+  const card = document.getElementById('pc-' + id);
+  const wasOpen = card.classList.contains('open');
+  document.querySelectorAll(`#pl-${tab} .phrase-card.open`).forEach(c => c.classList.remove('open'));
+  if (wasOpen) return;
+  card.classList.add('open');
+  const tbt = document.getElementById('tbt-' + id);
+  if (tbt.dataset.done) return;
+  const item = (phrases[tab] || []).find(p => p.id === id);
+  if (!item) return;
+
+  // Use stored translation if available (instant, no API)
+  if (item.trans) {
+    tbt.dataset.done = '1';
+    tbt.dataset.t = item.trans;
+    tbt.dataset.jp = item.text;
+    renderTransWithLinks(tbt, item.trans);
+    updateTransBadge(id, true);
+    return;
+  }
+  // Otherwise call API
+  tbt.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  const result = await translate(item.text, guestLang);
+  tbt.dataset.done = '1';
+  tbt.dataset.t = result;
+  tbt.dataset.jp = item.text;
+  renderTransWithLinks(tbt, result);
+  updateTransBadge(id, false);
+}
+
+function updateTransBadge(id, isStored) {
+  const badge = document.getElementById('tbadge-' + id);
+  if (!badge) return;
+  badge.className = 'trans-badge ' + (isStored ? 'stored' : 'live');
+  badge.textContent = isStored ? '💾 保存済み翻訳' : '🌐 リアルタイム翻訳';
+}
+
+// Render translation text, wrapping ingredient name matches with clickable spans
+function renderTransWithLinks(el, text) {
+  if (!text) { el.textContent = ''; return; }
+  // Build keyword map from current language
+  const langKey = guestLang === 'zh-TW' ? 'zh-TW' : guestLang === 'zh-CN' ? 'zh-CN' : guestLang === 'ko' ? 'ko' : 'en';
+  const keywordMap = []; // {word, id}
+  ingredients.forEach(ing => {
+    const kw = ing[langKey] ? null : null; // We'll match on nameEn for EN, or the desc names
+    // Match nameEn for English, or name for Japanese fallback
+    if (ing.nameEn) keywordMap.push({ word: ing.nameEn, id: ing.id });
+    if (ing.name) keywordMap.push({ word: ing.name, id: ing.id });
+  });
+
+  // Sort by length descending to match longer strings first
+  keywordMap.sort((a, b) => b.word.length - a.word.length);
+
+  // Escape HTML and find keyword positions
+  let escaped = escHtml(text);
+  // Replace keywords with spans (case-insensitive for English)
+  keywordMap.forEach(({ word, id }) => {
+    if (!word || word.length < 2) return;
+    const escaped_word = escHtml(word);
+    const regex = new RegExp(escaped_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    escaped = escaped.replace(regex,
+      `<span class="ing-keyword" onclick="openIngFromPhrase(${id})">${escaped_word}</span>`);
+  });
+  el.innerHTML = escaped;
+}
+
+function copyTrans(id) {
+  const el = document.getElementById('tbt-' + id);
+  if (el && el.dataset.t) navigator.clipboard.writeText(el.dataset.t).then(() => showToast('コピーしました'));
+}
+
+async function showBig(id, tab) {
+  const item = (phrases[tab] || []).find(p => p.id === id);
+  if (!item) return;
+  const jp = item.text;
+
+  // Use stored trans first (instant)
+  let trans = item.trans || null;
+  const tbt = document.getElementById('tbt-' + id);
+  if (!trans) trans = tbt && tbt.dataset.t ? tbt.dataset.t : null;
+  if (!trans) {
+    trans = await translate(jp, guestLang);
+    if (tbt) { tbt.dataset.done = '1'; tbt.dataset.t = trans; tbt.dataset.jp = jp; renderTransWithLinks(tbt, trans); }
+  }
+  gvTab = tab;
+  gvPhraseIds = (phrases[tab] || []).map(p => p.id);
+  gvCurrentIdx = gvPhraseIds.indexOf(id);
+  openGV(jp, trans, null);
+}
+
+// ============================================================
+// ADD / EDIT / DELETE PHRASES
+// ============================================================
+function toggleAdd(tab) {
+  const f = document.getElementById('af-' + tab);
+  f.classList.toggle('show');
+  if (f.classList.contains('show')) document.getElementById('nt-' + tab).focus();
+}
+function addPhrase(tab) {
+  const text = document.getElementById('nt-' + tab).value.trim();
+  if (!text) { showToast('テキストを入力してください'); return; }
+  const transEl = document.getElementById('nt-trans-' + tab);
+  const trans = transEl ? transEl.value.trim() : '';
+  const id = Date.now();
+  if (!phrases[tab]) phrases[tab] = [];
+  phrases[tab].push({ id, text, trans });
+  document.getElementById('nt-' + tab).value = '';
+  if (transEl) transEl.value = '';
+  document.getElementById('af-' + tab).classList.remove('show');
+  renderPhrases(tab);
+  saveToStorage();
+  showToast('✓ 追加しました');
+}
+
+async function translateAddField(tab) {
+  const text = document.getElementById('nt-' + tab).value.trim();
+  if (!text) { showToast('日本語テキストを先に入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const result = await translate(text, guestLang);
+  document.getElementById('nt-trans-' + tab).value = result;
+  btn.textContent = '🌐 翻訳して入力'; btn.disabled = false;
+}
+function openEditModal(id, tab) {
+  const item = (phrases[tab] || []).find(p => p.id === id);
+  if (!item) return;
+  editingPhraseId = id;
+  editingPhraseTab = tab;
+  document.getElementById('editText').value = item.text;
+  document.getElementById('editTrans').value = item.trans || '';
+  document.getElementById('editModal').classList.add('show');
+}
+
+function onEditTextChange() {
+  // Clear stored trans when JP text changes (warn user)
+  // Just clear the trans field so user knows to re-translate
+}
+
+async function translateEditField() {
+  const text = document.getElementById('editText').value.trim();
+  if (!text) { showToast('日本語テキストを入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const result = await translate(text, guestLang);
+  document.getElementById('editTrans').value = result;
+  btn.textContent = '🌐 翻訳して入力'; btn.disabled = false;
+}
+function closeEditModal() { document.getElementById('editModal').classList.remove('show'); editingPhraseId = null; editingPhraseTab = null; }
+function savePhrase() {
+  if (!editingPhraseId || !editingPhraseTab) return;
+  const item = (phrases[editingPhraseTab] || []).find(p => p.id === editingPhraseId);
+  if (item) {
+    item.text = document.getElementById('editText').value.trim();
+    item.trans = document.getElementById('editTrans').value.trim();
+    // Clear runtime cache so card re-renders correctly
+    const tbt = document.getElementById('tbt-' + editingPhraseId);
+    if (tbt) { delete tbt.dataset.done; delete tbt.dataset.t; tbt.textContent = ''; }
+    const card = document.getElementById('pc-' + editingPhraseId);
+    if (card) card.classList.remove('open');
+  }
+  closeEditModal();
+  renderPhrases(editingPhraseTab);
+  saveToStorage();
+  showToast('✓ 保存しました');
+}
+function delPhrase(id, tab) {
+  if (!confirm('削除しますか？')) return;
+  phrases[tab] = (phrases[tab] || []).filter(p => p.id !== id);
+  renderPhrases(tab);
+  saveToStorage();
+  showToast('削除しました');
+}
+document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+
+// ============================================================
+// INGREDIENT DB
+// ============================================================
+function switchDbCat(tab, cat) {
+  activeDbCat = cat;
+  document.querySelectorAll(`[data-dc^="${tab}-"]`).forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-dc="${tab}-${cat}"]`).classList.add('active');
+  renderDB(tab, cat);
+}
+
+function renderDB(tab, cat) {
+  const grid = document.getElementById('dg-' + tab);
+  if (!grid) return;
+  const items = ingredients.filter(i => i.cat === cat);
+  grid.innerHTML = items.map(ing => {
+    const imgHtml = ing.img
+      ? `<img class="db-img" src="${ing.img}" alt="${ing.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        + `<div class="db-img-placeholder" style="display:none">${ing.emoji || '🌿'}</div>`
+      : `<div class="db-img-placeholder">${ing.emoji || '🌿'}</div>`;
+    return `<div class="db-card" onclick="openIng(${ing.id})">
+      ${imgHtml}
+      <div class="db-name">${ing.nameEn}</div>
+      <div class="db-name-ja">${ing.name}</div>
+    </div>`;
+  }).join('') + `<div class="db-add-btn" onclick="openAddIng('${cat}')"><span class="add-icon">＋</span><span>食材を追加</span></div>`;
+}
+
+// ============================================================
+// INGREDIENT MODAL (VIEW)
+// ============================================================
+const ING_LANGS = [
+  {code:'ja', label:'🇯🇵 日本語'},
+  {code:'en', label:'🇬🇧 English'},
+  {code:'zh-TW', label:'🇹🇼 繁體'},
+  {code:'zh-CN', label:'🇨🇳 简体'},
+  {code:'ko', label:'🇰🇷 한국어'},
+];
+
+function openIng(id) {
+  selectedIngId = id;
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  currentIngLang = 'ja';
+  document.getElementById('ingEditMode').classList.remove('show');
+  document.getElementById('ingViewMode').style.display = 'block';
+  document.getElementById('ingModalTitle').textContent = `${ing.emoji || ''} ${ing.name} / ${ing.nameEn}`;
+  // image
+  const wrap = document.getElementById('ingModalImgWrap');
+  if (ing.img) {
+    wrap.innerHTML = `<img src="${ing.img}" style="width:100%;height:240px;object-fit:cover;border-radius:10px;margin-bottom:14px" onerror="this.outerHTML='<div class=ing-modal-img>${ing.emoji || '🌿'}</div>'">`;
+  } else {
+    wrap.innerHTML = `<div class="ing-modal-img">${ing.emoji || '🌿'}</div>`;
+  }
+  // lang tabs
+  document.getElementById('ingLangTabs').innerHTML = ING_LANGS.map(l =>
+    `<button class="ing-lang-tab${l.code === 'ja' ? ' active' : ''}" onclick="switchIngLang('${l.code}')" data-il="${l.code}">${l.label}</button>`
+  ).join('');
+  showIngDesc('ja');
+  document.getElementById('ingModal').classList.add('show');
+}
+
+function switchIngLang(code) {
+  currentIngLang = code;
+  document.querySelectorAll('[data-il]').forEach(b => b.classList.toggle('active', b.getAttribute('data-il') === code));
+  showIngDesc(code);
+}
+
+function showIngDesc(code) {
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  if (!ing) return;
+  const desc = ing[code] || '';
+  document.getElementById('ingDescBox').textContent = desc || '（説明未登録）';
+}
+
+function closeIngModal() {
+  document.getElementById('ingModal').classList.remove('show');
+  selectedIngId = null;
+}
+document.getElementById('ingModal').addEventListener('click', function(e) { if (e.target === this) closeIngModal(); });
+
+// ============================================================
+// INGREDIENT MODAL (EDIT)
+// ============================================================
+function toggleIngEdit() {
+  const editMode = document.getElementById('ingEditMode');
+  const viewMode = document.getElementById('ingViewMode');
+  const isEdit = editMode.classList.contains('show');
+  if (isEdit) {
+    editMode.classList.remove('show');
+    viewMode.style.display = 'block';
+    clearPhotoInputs('ingEdit');
+  } else {
+    const ing = ingredients.find(i => i.id === selectedIngId);
+    if (!ing) return;
+    document.getElementById('ingEditImg').value = ing.img || '';
+    document.getElementById('ingEditImg').style.display = ing.img ? 'block' : 'none';
+    if (ing.img) showPhotoPreview('ingEdit', ing.img); else clearPhotoInputs('ingEdit');
+    document.getElementById('ingEditEmoji').value = ing.emoji || '';
+    document.getElementById('ingEditName').value = ing.name || '';
+    document.getElementById('ingEditNameEn').value = ing.nameEn || '';
+    document.getElementById('ingEditCat').value = ing.cat || 'seafood';
+    document.getElementById('ingEditJa').value = ing.ja || '';
+    document.getElementById('ingEditEn').value = ing.en || '';
+    document.getElementById('ingEditZhTW').value = ing['zh-TW'] || '';
+    document.getElementById('ingEditZhCN').value = ing['zh-CN'] || '';
+    document.getElementById('ingEditKo').value = ing.ko || '';
+    viewMode.style.display = 'none';
+    editMode.classList.add('show');
+  }
+}
+
+function saveIng() {
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  if (!ing) return;
+  ing.img = document.getElementById('ingEditImg').value.trim();
+  ing.emoji = document.getElementById('ingEditEmoji').value.trim();
+  ing.name = document.getElementById('ingEditName').value.trim();
+  ing.nameEn = document.getElementById('ingEditNameEn').value.trim();
+  ing.cat = document.getElementById('ingEditCat').value;
+  ing.ja = document.getElementById('ingEditJa').value.trim();
+  ing.en = document.getElementById('ingEditEn').value.trim();
+  ing['zh-TW'] = document.getElementById('ingEditZhTW').value.trim();
+  ing['zh-CN'] = document.getElementById('ingEditZhCN').value.trim();
+  ing.ko = document.getElementById('ingEditKo').value.trim();
+  toggleIngEdit();
+  // refresh desc
+  document.getElementById('ingModalTitle').textContent = `${ing.emoji || ''} ${ing.name} / ${ing.nameEn}`;
+  const wrap = document.getElementById('ingModalImgWrap');
+  if (ing.img) {
+    wrap.innerHTML = `<img src="${ing.img}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px" onerror="this.outerHTML='<div class=ing-modal-img>${ing.emoji||'🌿'}</div>'">`;
+  } else {
+    wrap.innerHTML = `<div class="ing-modal-img">${ing.emoji || '🌿'}</div>`;
+  }
+  showIngDesc(currentIngLang);
+  ['dinner','breakfast'].forEach(t => { const g = document.getElementById('dg-'+t); if(g) renderDB(t, activeDbCat); });
+  saveToStorage();
+  showToast('✓ 保存しました');
+}
+
+function deleteIng() {
+  if (!confirm('この食材を削除しますか？')) return;
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  const cat = ing ? ing.cat : activeDbCat;
+  ingredients = ingredients.filter(i => i.id !== selectedIngId);
+  closeIngModal();
+  ['dinner','breakfast'].forEach(t => { const g = document.getElementById('dg-'+t); if(g) renderDB(t, cat); });
+  saveToStorage();
+  showToast('削除しました');
+}
+
+function showIngGuest() {
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  if (!ing) return;
+  const langKey = guestLang === 'zh-TW' ? 'zh-TW' : guestLang === 'zh-CN' ? 'zh-CN' : guestLang === 'ko' ? 'ko' : 'en';
+  const desc = ing[langKey] || ing.en || ing.ja || '';
+  const jaDesc = ing.ja || '';
+  const imgHtml = ing.img
+    ? `<img class="gv-ing-img" src="${ing.img}" alt="${ing.name}">`
+    : `<div class="gv-ing-img-placeholder">${ing.emoji || '🌿'}</div>`;
+  document.getElementById('gvBody').innerHTML = `
+    ${imgHtml}
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;color:var(--sand);font-family:'Cormorant Garamond',serif;font-weight:300;letter-spacing:2px">${ing.nameEn}</div>
+      <div style="font-size:16px;color:rgba(232,220,200,0.6);margin-top:4px">${ing.name}</div>
+    </div>
+    <div class="gv-main-box"><div class="gv-text">${escHtml(desc)}</div></div>
+    <div class="gv-jp-box"><span class="gv-jp-lbl">日本語</span><div class="gv-jp-text">${escHtml(jaDesc)}</div></div>`;
+  closeIngModal();
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+  document.getElementById('guestView').style.display = 'block';
+}
+
+// ============================================================
+// ADD NEW INGREDIENT
+// ============================================================
+function openAddIng(cat) {
+  document.getElementById('aIngCat').value = cat;
+  ['Emoji','Name','NameEn','Ja','En','ZhTW','ZhCN','Ko'].forEach(f => {
+    const el = document.getElementById('aIng' + f);
+    if (el) el.value = '';
+  });
+  clearPhotoInputs('aIng');
+  document.getElementById('addIngModal').classList.add('show');
+}
+function closeAddIng() { document.getElementById('addIngModal').classList.remove('show'); clearPhotoInputs('aIng'); }
+function saveNewIng() {
+  const name = document.getElementById('aIngName').value.trim();
+  if (!name) { showToast('名前を入力してください'); return; }
+  const cat = document.getElementById('aIngCat').value;
+  const newIng = {
+    id: Date.now(),
+    cat,
+    img: document.getElementById('aIngImg').value.trim(),
+    emoji: document.getElementById('aIngEmoji').value.trim() || '🌿',
+    name,
+    nameEn: document.getElementById('aIngNameEn').value.trim(),
+    ja: document.getElementById('aIngJa').value.trim(),
+    en: document.getElementById('aIngEn').value.trim(),
+    'zh-TW': document.getElementById('aIngZhTW').value.trim(),
+    'zh-CN': document.getElementById('aIngZhCN').value.trim(),
+    ko: document.getElementById('aIngKo').value.trim(),
+  };
+  ingredients.push(newIng);
+  closeAddIng();
+  ['dinner','breakfast'].forEach(t => { const g = document.getElementById('dg-'+t); if(g) renderDB(t, cat); });
+  saveToStorage();
+  showToast('✓ 食材を追加しました');
+}
+document.getElementById('addIngModal').addEventListener('click', function(e) { if (e.target === this) closeAddIng(); });
+
+// ============================================================
+// GUEST VIEW
+// ============================================================
+function openGV(jp, trans, imgHtml, showNav) {
+  const gvBody = document.getElementById('gvBody');
+  gvBody.innerHTML = `
+    ${imgHtml || ''}
+    <span class="gv-flag">${LANGS[guestLang].flag}</span>
+    <div class="gv-main-box"><div class="gv-text" id="gvMainText"></div></div>
+    <div class="gv-jp-box"><span class="gv-jp-lbl">JAPANESE / 日本語</span><div class="gv-jp-text">${escHtml(jp)}</div></div>`;
+  // Render with ingredient keyword links
+  const gvMainText = document.getElementById('gvMainText');
+  if (gvMainText) renderGVTransWithLinks(gvMainText, trans);
+  document.getElementById('guestView').style.display = 'block';
+  // Nav bar
+  const nav = document.getElementById('gvNav');
+  const hint = document.getElementById('gvHint');
+  if (showNav !== false && gvPhraseIds && gvPhraseIds.length > 1) {
+    nav.style.display = 'flex';
+    hint.style.display = 'block';
+    document.getElementById('gvCounter').textContent = (gvCurrentIdx + 1) + ' / ' + gvPhraseIds.length;
+    document.getElementById('gvPrev').disabled = gvCurrentIdx <= 0;
+    document.getElementById('gvNext').disabled = gvCurrentIdx >= gvPhraseIds.length - 1;
+  } else {
+    nav.style.display = 'none';
+    hint.style.display = 'none';
+  }
+}
+function closeGV() {
+  document.getElementById('guestView').style.display = 'none';
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+}
+
+// Navigate to prev/next phrase in guest view
+async function gvNavigate(dir) {
+  const newIdx = gvCurrentIdx + dir;
+  if (!gvPhraseIds || newIdx < 0 || newIdx >= gvPhraseIds.length) return;
+  gvCurrentIdx = newIdx;
+  const id = gvPhraseIds[gvCurrentIdx];
+  const item = (phrases[gvTab] || []).find(p => p.id === id);
+  if (!item) return;
+  // Animate slide
+  const body = document.getElementById('gvBody');
+  body.style.transition = 'opacity 0.15s';
+  body.style.opacity = '0';
+  await new Promise(r => setTimeout(r, 150));
+  // Get/cache translation — stored trans first (instant)
+  let trans = item.trans || null;
+  const tbt = document.getElementById('tbt-' + id);
+  if (!trans) trans = tbt && tbt.dataset.t ? tbt.dataset.t : null;
+  if (!trans) {
+    trans = await translate(item.text, guestLang);
+    if (tbt) { tbt.dataset.done = '1'; tbt.dataset.t = trans; tbt.dataset.jp = item.text; renderTransWithLinks(tbt, trans); }
+  }
+  openGV(item.text, trans, null);
+  body.style.opacity = '0';
+  requestAnimationFrame(() => { body.style.transition = 'opacity 0.2s'; body.style.opacity = '1'; });
+}
+
+// ============================================================
+// FREE TRANSLATION
+// ============================================================
+function ftCC() { document.getElementById('ftCC').textContent = document.getElementById('ftInput').value.length + '文字'; }
+function clearFT() { document.getElementById('ftInput').value = ''; document.getElementById('ftResult').style.display = 'none'; ftCC(); }
+async function doFT() {
+  const text = document.getElementById('ftInput').value.trim();
+  if (!text) { showToast('テキストを入力してください'); return; }
+  lastFTjp = text;
+  document.getElementById('ftResult').style.display = 'block';
+  document.getElementById('ftResLang').innerHTML = `<span>${LANGS[guestLang].flag}</span><span>${LANGS[guestLang].name}</span>`;
+  document.getElementById('ftResText').innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  document.getElementById('ftResJP').textContent = '';
+  const result = await translate(text, guestLang);
+  lastFTtrans = result;
+  document.getElementById('ftResText').textContent = result;
+  document.getElementById('ftResJP').innerHTML = `<span style="font-size:10px;letter-spacing:2px;opacity:0.6;display:block;margin-bottom:3px">JAPANESE</span>${escHtml(text)}`;
+}
+function showFTGuest() {
+  if (!lastFTtrans) { showToast('先に翻訳してください'); return; }
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+  openGV(lastFTjp, lastFTtrans, null, false);
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+async function translateWelcome() {
+  const el = document.getElementById('welcomeTrans');
+  el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  const t = await translate('WASSA WASSAへようこそ！なんでもどうぞ。', guestLang);
+  el.textContent = t;
+  document.getElementById('welcomeTime').textContent = getTime();
+}
+function updateChatLangBtns() {
+  document.querySelectorAll('.clang-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-cl') === guestLang));
+}
+function switchCL(lang) {
+  guestLang = lang;
+  document.getElementById('hdFlag').textContent = LANGS[lang].flag;
+  document.getElementById('hdName').textContent = LANGS[lang].name;
+  document.getElementById('ftLangSpan').textContent = LANGS[lang].name;
+  document.getElementById('rbGuest').textContent = `👤 ${LANGS[lang].flag} ゲスト`;
+  updateChatLangBtns();
+  // Reset phrase caches (stored trans.lang may differ)
+  document.querySelectorAll('[id^="tbt-"]').forEach(el => { delete el.dataset.done; delete el.dataset.t; el.innerHTML = ''; });
+  document.querySelectorAll('[id^="tbadge-"]').forEach(el => { el.style.display='none'; });
+  document.querySelectorAll('.phrase-card.open').forEach(c => c.classList.remove('open'));
+}
+function setRole(role) {
+  chatRole = role;
+  document.getElementById('rbStaff').classList.toggle('active', role === 'staff');
+  document.getElementById('rbGuest').classList.toggle('active', role === 'guest');
+  document.getElementById('ciInput').placeholder = role === 'staff' ? '日本語でメッセージ...' : `${LANGS[guestLang].name}でメッセージ...`;
+}
+async function sendChat() {
+  const input = document.getElementById('ciInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; autoResize(input);
+  appendBubble(text, chatRole);
+  if (chatRole === 'staff') {
+    const t = await translate(text, guestLang);
+    setLastTrans(t, 'staff');
+  } else {
+    const t = await translateFrom(text, guestLang);
+    setLastTrans(`（日本語：${t}）`, 'guest');
+  }
+}
+function appendBubble(text, role) {
+  const c = document.getElementById('chatMsgs');
+  const d = document.createElement('div');
+  d.className = `cmsg ${role}`;
+  const lbl = role === 'staff' ? '↓ ゲスト言語翻訳' : '↓ 日本語訳';
+  d.innerHTML = `<div class="cavatar">${role === 'staff' ? '👩‍💼' : '👤'}</div>
+    <div class="cbwrap">
+      <div class="cbubble">${escHtml(text)}
+        <div class="cborig">${lbl}</div>
+        <div class="cbtrans"><div class="dots"><span></span><span></span><span></span></div></div>
+      </div>
+      <div class="ctime">${getTime()}</div>
+    </div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function setLastTrans(text, role) {
+  const all = document.querySelectorAll(`#chatMsgs .cmsg.${role} .cbtrans`);
+  if (all.length) all[all.length - 1].textContent = text;
+}
+function clearChat() { if (!confirm('履歴をクリアしますか？')) return; document.getElementById('chatMsgs').innerHTML = ''; showToast('クリアしました'); }
+function ciKD(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }
+
+
+// ============================================================
+// PHOTO UPLOAD
+// ============================================================
+function onPhotoFile(prefix, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    document.getElementById(prefix + 'Img').value = dataUrl;
+    showPhotoPreview(prefix, dataUrl);
+  };
+  reader.readAsDataURL(file);
+}
+function togglePhotoUrl(prefix) {
+  const inp = document.getElementById(prefix + 'Img');
+  inp.style.display = inp.style.display === 'none' ? 'block' : 'none';
+  if (inp.style.display === 'block') inp.focus();
+}
+function onPhotoUrl(prefix, inp) {
+  if (inp.value.startsWith('http')) showPhotoPreview(prefix, inp.value);
+}
+function showPhotoPreview(prefix, src) {
+  const wrap = document.getElementById(prefix + 'PreviewWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!src) return;
+  const img = document.createElement('img');
+  img.className = 'photo-preview-img';
+  img.src = src;
+  img.onerror = function() {
+    wrap.innerHTML = '<div style="color:var(--warm-gray);font-size:12px;padding:6px">画像を読み込めませんでした</div>';
+  };
+  wrap.appendChild(img);
+}
+function clearPhotoInputs(prefix) {
+  const inp = document.getElementById(prefix + 'Img');
+  if (inp) { inp.value = ''; inp.style.display = 'none'; }
+  const file = document.getElementById(prefix + 'File');
+  if (file) file.value = '';
+  const wrap = document.getElementById(prefix + 'PreviewWrap');
+  if (wrap) wrap.innerHTML = '';
+}
+
+
+// ============================================================
+// INGREDIENT KEYWORD LINKING
+// ============================================================
+
+// Render translated text in guestView with ingredient keyword links
+function renderGVTransWithLinks(el, text) {
+  if (!text) { el.textContent = ''; return; }
+  const langKey = guestLang === 'zh-TW' ? 'zh-TW' : guestLang === 'zh-CN' ? 'zh-CN' : guestLang === 'ko' ? 'ko' : 'en';
+
+  // Collect keywords: nameEn + name for each ingredient
+  const keywords = [];
+  ingredients.forEach(ing => {
+    if (ing.nameEn && ing.nameEn.length >= 2) keywords.push({ word: ing.nameEn, id: ing.id });
+    if (ing.name && ing.name.length >= 2) keywords.push({ word: ing.name, id: ing.id });
+  });
+  keywords.sort((a, b) => b.word.length - a.word.length);
+
+  let html = escHtml(text);
+  keywords.forEach(({ word, id }) => {
+    const ew = escHtml(word);
+    const regex = new RegExp(ew.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    html = html.replace(regex,
+      `<span class="ing-keyword" style="font-size:inherit;color:#a8d5a2;border-bottom-color:#a8d5a2;background:rgba(168,213,162,0.15)" onclick="openIngFromGV(${id})">${ew}</span>`);
+  });
+  el.innerHTML = html;
+}
+
+// Open ingredient from phrase card (closes phrase, opens ing modal)
+function openIngFromPhrase(id) {
+  // Close any open phrase cards
+  document.querySelectorAll('.phrase-card.open').forEach(c => c.classList.remove('open'));
+  openIng(id);
+}
+
+// Open ingredient from guest view (close GV first, then open ing modal)
+function openIngFromGV(id) {
+  closeGV();
+  // Small delay to let GV close
+  setTimeout(() => openIng(id), 200);
+}
+
+// ============================================================
+// BULK TRANSLATE INGREDIENT DESCRIPTIONS
+// ============================================================
+async function translateAllIngDesc() {
+  const jaText = document.getElementById('ingEditJa').value.trim();
+  if (!jaText) { showToast('日本語説明を入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const langs = [
+    { code: 'en',    el: 'ingEditEn' },
+    { code: 'zh-TW', el: 'ingEditZhTW' },
+    { code: 'zh-CN', el: 'ingEditZhCN' },
+    { code: 'ko',    el: 'ingEditKo' },
+  ];
+  for (const l of langs) {
+    const result = await translate(jaText, l.code);
+    document.getElementById(l.el).value = result;
+  }
+  btn.textContent = '🌐 全言語に翻訳'; btn.disabled = false;
+  showToast('✓ 4言語に翻訳しました');
+}
+
+async function translateAllNewIngDesc() {
+  const jaText = document.getElementById('aIngJa').value.trim();
+  if (!jaText) { showToast('日本語説明を入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const langs = [
+    { code: 'en',    el: 'aIngEn' },
+    { code: 'zh-TW', el: 'aIngZhTW' },
+    { code: 'zh-CN', el: 'aIngZhCN' },
+    { code: 'ko',    el: 'aIngKo' },
+  ];
+  for (const l of langs) {
+    const result = await translate(jaText, l.code);
+    document.getElementById(l.el).value = result;
+  }
+  btn.textContent = '🌐 全言語に翻訳'; btn.disabled = false;
+  showToast('✓ 4言語に翻訳しました');
+}
+
+// ============================================================
+// WIFI FUNCTIONS
+// ============================================================
+function buildWifiSection(tab) {
+  const container = document.getElementById('wifi-section-' + tab);
+  if (!container) return;
+  container.innerHTML = wifiNetworks.map(w => `
+    <div class="wifi-card" id="wc-${w.id}">
+      <div class="wifi-card-head">
+        <div class="wifi-room">${w.room}</div>
+        <button class="wifi-edit-btn" onclick="openWifiModal('${w.id}')">✏️ 編集</button>
+      </div>
+      <div class="wifi-body">
+        <div class="wifi-info">
+          <div class="wifi-ssid-lbl">NETWORK NAME / SSID</div>
+          <div class="wifi-ssid">${w.ssid}</div>
+          <div class="wifi-pass-lbl">PASSWORD</div>
+          <div class="wifi-pass">${w.pass}</div>
+        </div>
+        <div class="wifi-qr-wrap" id="qr-${w.id}"></div>
+      </div>
+      <button class="wifi-show-btn" onclick="showWifiGuest('${w.id}')">📱 ゲストに見せる（大画面）</button>
+    </div>
+  `).join('');
+  // Generate QR codes
+  wifiNetworks.forEach(w => {
+    const el = document.getElementById('qr-' + w.id);
+    if (!el) return;
+    el.innerHTML = '';
+    const qrStr = `WIFI:T:${w.sec};S:${w.ssid};P:${w.pass};;`;
+    try {
+      new QRCode(el, { text: qrStr, width: 110, height: 110, colorDark:'#2c2825', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch(e) { el.innerHTML = '<div style="font-size:10px;color:var(--warm-gray);padding:4px">QR生成中...</div>'; }
+  });
+}
+
+function openWifiModal(id) {
+  const w = wifiNetworks.find(n => n.id === id);
+  if (!w) return;
+  editingWifiId = id;
+  document.getElementById('wfRoom').value = w.room;
+  document.getElementById('wfSsid').value = w.ssid;
+  document.getElementById('wfPass').value = w.pass;
+  document.getElementById('wfSec').value = w.sec;
+  document.getElementById('wifiModal').classList.add('show');
+}
+function closeWifiModal() { document.getElementById('wifiModal').classList.remove('show'); editingWifiId = null; }
+function saveWifi() {
+  const w = wifiNetworks.find(n => n.id === editingWifiId);
+  if (!w) return;
+  w.room = document.getElementById('wfRoom').value.trim();
+  w.ssid = document.getElementById('wfSsid').value.trim();
+  w.pass = document.getElementById('wfPass').value.trim();
+  w.sec  = document.getElementById('wfSec').value;
+  closeWifiModal();
+  ['floor2'].forEach(t => buildWifiSection(t));
+  saveToStorage();
+  showToast('✓ Wi-Fi情報を保存しました');
+}
+document.getElementById('wifiModal').addEventListener('click', function(e) { if (e.target === this) closeWifiModal(); });
+
+function showWifiGuest(id) {
+  const w = wifiNetworks.find(n => n.id === id);
+  if (!w) return;
+  const WIFI_LABELS = {
+    'en':    {network:'Network Name', password:'Password', hint:'Scan the QR code to connect automatically, or enter the password manually.'},
+    'zh-TW': {network:'網路名稱', password:'密碼', hint:'掃描QR碼即可自動連線，或手動輸入密碼。'},
+    'zh-CN': {network:'网络名称', password:'密码', hint:'扫描QR码即可自动连接，或手动输入密码。'},
+    'ko':    {network:'네트워크 이름', password:'비밀번호', hint:'QR코드를 스캔하면 자동으로 연결되거나, 비밀번호를 직접 입력하세요.'},
+  };
+  const lbl = WIFI_LABELS[guestLang] || WIFI_LABELS['en'];
+  const qrStr = `WIFI:T:${w.sec};S:${w.ssid};P:${w.pass};;`;
+
+  // Build guest view HTML
+  document.getElementById('gvBody').innerHTML = `
+    <div class="gv-wifi-room">📶 Wi-Fi — ${w.room}</div>
+    <div class="gv-qr-center"><div class="gv-qr-box" id="gvQR"></div></div>
+    <div class="gv-wifi-details">
+      <div class="gv-wifi-row">
+        <div class="gv-wifi-row-lbl">${lbl.network}</div>
+        <div class="gv-wifi-row-val">${w.ssid}</div>
+      </div>
+      <div class="gv-wifi-row">
+        <div class="gv-wifi-row-lbl">${lbl.password}</div>
+        <div class="gv-wifi-row-val">${w.pass}</div>
+      </div>
+      <div class="gv-wifi-hint">${lbl.hint}</div>
+    </div>`;
+  document.getElementById('guestView').style.display = 'block';
+  // Render QR in guest view
+  setTimeout(() => {
+    const el = document.getElementById('gvQR');
+    if (!el) return;
+    try {
+      new QRCode(el, { text: qrStr, width: 180, height: 180, colorDark:'#1a0f08', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch(e) { el.textContent = 'QRコード生成エラー'; }
+  }, 50);
+}
+
+
+// ============================================================
+// LOCAL STORAGE — 自動保存・自動読み込み
+// ============================================================
+const LS_KEY = 'wassa_data_v1';
+
+function saveToStorage() {
+  try {
+    const data = {
+      phrases: phrases,
+      ingredients: ingredients,
+      wifiNetworks: wifiNetworks,
+      savedAt: new Date().toLocaleString('ja-JP')
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    const el = document.getElementById('saveStatus');
+    if (el) {
+      el.textContent = '✓ 保存済 ' + data.savedAt.slice(5,16);
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.textContent = '📲 自動保存 ON'; }, 3000);
+    }
+  } catch(e) { console.warn('save failed', e); }
+}
+
+function loadFromStorage() {
+  try {
+    // Priority 1: baked-in backup from exported HTML
+    if (window.__WASSA_RESTORE__) {
+      const d = window.__WASSA_RESTORE__;
+      if (d.phrases)      phrases = d.phrases;
+      if (d.ingredients)  ingredients = d.ingredients;
+      if (d.wifiNetworks) wifiNetworks = d.wifiNetworks;
+      // Also save to localStorage so edits persist
+      saveToStorage();
+      window.__WASSA_RESTORE__ = null;
+      return true;
+    }
+    // Priority 2: localStorage
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.phrases)      phrases = data.phrases;
+    if (data.ingredients)  ingredients = data.ingredients;
+    if (data.wifiNetworks) wifiNetworks = data.wifiNetworks;
+    return true;
+  } catch(e) { console.warn('load failed', e); return false; }
+}
+
+function clearAllData() {
+  if (!confirm('すべてのデータをリセットしますか？\n（初期データに戻ります）')) return;
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+function exportHTML() {
+  try {
+    const data = { phrases, ingredients, wifiNetworks };
+    const json = JSON.stringify(data);
+    // inject a restore script into a copy of the page
+    const marker = '/* __WASSA_DATA_INJECT__ */';
+    const restoreScript = `<script>
+window.__WASSA_RESTORE__ = ${json};
+<\/script>`;
+    let html = document.documentElement.outerHTML;
+    // Remove any previous inject
+    html = html.replace(/<script>\s*window\.__WASSA_RESTORE__[\s\S]*?<\/script>\n?/g, '');
+    // Insert before closing head
+    html = html.replace('</head>', restoreScript + '\n</head>');
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'wassa-staff-translator.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast('✓ ダウンロードしました。GitHubに上書きアップしてください。');
+  } catch(e) { showToast('エラー: ' + e.message); }
+}
+// ============================================================
+// UTILS
+// ============================================================
+// Touch swipe on guest view
+(function(){
+  const gv = document.getElementById('guestView');
+  gv.addEventListener('touchstart', function(e){ gvTouchX = e.touches[0].clientX; }, {passive:true});
+  gv.addEventListener('touchend', function(e){
+    if (gvTouchX === null) return;
+    const dx = e.changedTouches[0].clientX - gvTouchX;
+    gvTouchX = null;
+    if (Math.abs(dx) > 50) gvNavigate(dx < 0 ? 1 : -1);
+  }, {passive:true});
+})();
+
+
+// Auto-restore on page load
+window.addEventListener('DOMContentLoaded', function() {
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    try {
+      const d = JSON.parse(saved);
+      if (d.lastLang) {
+        // Don't auto-skip splash — always let staff select lang for current guest
+      }
+    } catch(e) {}
+  }
+});
+
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 80) + 'px'; }
+function getTime() { return new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }); }
+function escHtml(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2300); }
+</script>
+</body>
+</html>
