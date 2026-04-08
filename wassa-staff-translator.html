@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WASSA WASSA — Staff Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sand:#e8dcc8;--sand-light:#f5f0e8;--earth:#8b6f47;--earth-dark:#4a3728;
+  --earth-mid:#6b4f38;--ocean:#3d6b7a;--forest:#4e6b44;--cream:#faf8f3;
+  --charcoal:#2c2825;--warm-gray:#9a8878;--gold:#c4973a;--danger:#8b3a2a;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);color:var(--charcoal)}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:3000;background:linear-gradient(160deg,#1a0f08 0%,#3a2510 50%,#1a2820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;transition:opacity 0.7s}
+#splash.hide{opacity:0;pointer-events:none}
+.sp-logo .ww{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:50px;font-weight:300;letter-spacing:10px;display:block;text-align:center}
+.sp-logo .sub{font-family:'Cormorant Garamond',serif;color:var(--warm-gray);font-size:13px;letter-spacing:5px;font-style:italic;margin-top:6px;display:block;text-align:center}
+.sp-div{width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--sand),transparent)}
+.sp-prompt{font-family:'Cormorant Garamond',serif;color:var(--sand-light);font-size:16px;letter-spacing:3px;font-style:italic}
+.sp-langs{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:360px}
+.sp-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(232,220,200,0.2);color:var(--sand);padding:18px 14px;border-radius:12px;cursor:pointer;text-align:center;transition:all 0.25s;font-family:inherit}
+.sp-btn:hover{background:rgba(232,220,200,0.14);border-color:rgba(232,220,200,0.5);transform:translateY(-2px)}
+.sp-btn .flag{font-size:26px;display:block;margin-bottom:6px}
+.sp-btn .lname{font-size:15px;font-weight:500;display:block}
+.sp-btn .lsub{font-size:11px;opacity:0.55;margin-top:2px;display:block}
+
+/* APP */
+#app{height:100vh;display:flex;flex-direction:column}
+.header{background:var(--earth-dark);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 16px rgba(0,0,0,0.3)}
+.hd-left{display:flex;align-items:center;gap:10px}
+.hd-logo{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:20px;font-weight:300;letter-spacing:4px}
+.hd-badge{background:rgba(232,220,200,0.14);border:1px solid rgba(232,220,200,0.2);color:var(--sand);padding:2px 10px;border-radius:10px;font-size:10px;letter-spacing:1px}
+.hd-lang{display:flex;align-items:center;gap:6px;background:rgba(232,220,200,0.1);border:1px solid rgba(232,220,200,0.2);border-radius:20px;padding:5px 12px;cursor:pointer;color:var(--sand);font-size:12px;font-family:inherit;transition:all 0.2s}
+.hd-lang:hover{background:rgba(232,220,200,0.2)}
+
+/* TAB BAR - scrollable */
+.tab-bar{display:flex;background:#3a2812;border-bottom:2px solid var(--earth-mid);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-item{flex:0 0 auto;padding:10px 12px;text-align:center;cursor:pointer;font-size:10px;color:rgba(232,220,200,0.4);border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap;min-width:70px}
+.tab-item .ti{font-size:18px;display:block;margin-bottom:2px}
+.tab-item.active{color:var(--sand);border-bottom-color:var(--gold)}
+.tab-item:hover:not(.active){color:rgba(232,220,200,0.7)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:14px 16px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--earth);border-radius:3px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* COMMON */
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--earth-dark);margin-bottom:2px;font-weight:300}
+.sec-sub{color:var(--warm-gray);font-size:11px;margin-bottom:14px}
+
+.btn{border:none;border-radius:8px;padding:9px 18px;cursor:pointer;font-family:inherit;font-size:13px;transition:all 0.2s;display:inline-flex;align-items:center;gap:5px}
+.btn-dark{background:var(--earth-dark);color:var(--sand)}
+.btn-dark:hover{background:var(--earth-mid)}
+.btn-green{background:var(--forest);color:#fff}
+.btn-green:hover{background:#3a5233}
+.btn-ghost{background:var(--sand-light);color:var(--earth-dark);border:1px solid var(--sand)}
+.btn-ghost:hover{background:var(--sand)}
+.btn-red{background:#fde8e2;color:var(--danger);border:1px solid rgba(184,104,64,0.15)}
+.btn-red:hover{background:#f5ccc2}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+.btn-gold{background:var(--gold);color:#fff}
+
+.form-lbl{font-size:11px;color:var(--warm-gray);display:block;margin-bottom:4px;letter-spacing:1px}
+.form-sel{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);margin-bottom:10px}
+.form-sel:focus{outline:none;border-color:var(--earth)}
+.form-ta{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);resize:none;line-height:1.75;transition:border-color 0.2s}
+.form-ta:focus{outline:none;border-color:var(--earth);background:#fff}
+.form-inp{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;background:var(--cream);color:var(--charcoal);transition:border-color 0.2s;margin-bottom:8px}
+.form-inp:focus{outline:none;border-color:var(--earth);background:#fff}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--earth-dark);color:var(--sand);padding:9px 20px;border-radius:18px;font-size:13px;z-index:9000;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.modal-ov{position:fixed;inset:0;z-index:4000;background:rgba(30,20,12,0.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.modal-ov.show{opacity:1;pointer-events:all}
+.modal-box{background:var(--cream);border-radius:14px;width:92vw;max-width:560px;max-height:88vh;overflow-y:auto;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.35);transform:translateY(14px);transition:transform 0.25s}
+.modal-box::-webkit-scrollbar{width:4px}
+.modal-box::-webkit-scrollbar-thumb{background:var(--earth);border-radius:3px}
+.modal-ov.show .modal-box{transform:translateY(0)}
+.modal-ttl{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--earth-dark);margin-bottom:14px}
+.modal-act{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+.dots{display:flex;gap:4px;align-items:center}
+.dots span{width:6px;height:6px;border-radius:50%;background:var(--warm-gray);animation:dot 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+/* ADD FORM */
+.add-form{background:var(--sand-light);border:1px solid var(--sand);border-radius:12px;padding:14px;margin-bottom:12px;display:none}
+.add-form.show{display:block}
+
+/* ===== PHRASE LIST ===== */
+.phrase-list{display:flex;flex-direction:column;gap:8px}
+.phrase-card{background:#fff;border:1px solid rgba(139,111,71,0.14);border-radius:11px;overflow:hidden;box-shadow:0 2px 7px rgba(74,55,40,0.06);transition:box-shadow 0.2s}
+.phrase-card:hover{box-shadow:0 3px 14px rgba(74,55,40,0.11)}
+
+/* drag handle */
+.phrase-drag{background:var(--sand-light);border-bottom:1px solid rgba(139,111,71,0.1);padding:5px 14px;display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none}
+.phrase-drag:active{cursor:grabbing}
+.drag-icon{color:var(--warm-gray);font-size:14px;letter-spacing:2px}
+.drag-order{font-size:10px;color:var(--warm-gray)}
+.phrase-card.dragging{opacity:0.5;border:2px dashed var(--earth)}
+.phrase-card.drag-over{border-top:3px solid var(--gold)}
+
+.phrase-main{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;transition:background 0.15s}
+.phrase-main:hover{background:var(--sand-light)}
+.phrase-jp{font-size:14px;line-height:1.7;color:var(--charcoal);flex:1}
+.phrase-arrow{color:var(--gold);font-size:20px;flex-shrink:0;transition:transform 0.2s;line-height:1}
+.phrase-card.open .phrase-arrow{transform:rotate(90deg)}
+
+.phrase-trans{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.phrase-card.open .phrase-trans{max-height:2000px}
+.trans-inner{padding:0 14px 12px}
+.trans-box{background:linear-gradient(135deg,#edf5ed,#e6f1e6);border:1px solid rgba(78,107,68,0.2);border-left:4px solid var(--forest);border-radius:9px;padding:12px 14px;margin-bottom:8px}
+.tb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tb-lang-info{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--warm-gray)}
+.tb-copy{background:var(--forest);color:#fff;border:none;border-radius:5px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit}
+.tb-text{font-size:19px;line-height:1.8;color:var(--charcoal)}
+
+.show-big-btn{width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;font-family:inherit;font-size:13px;background:linear-gradient(135deg,var(--earth-dark),var(--earth-mid));color:var(--sand);display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;box-shadow:0 2px 10px rgba(74,55,40,0.22)}
+.show-big-btn:hover{opacity:0.9;transform:translateY(-1px)}
+
+.phrase-actions{display:flex;gap:5px;padding:5px 14px 10px}
+.pa-btn{font-size:11px;padding:3px 9px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.pa-edit{background:var(--sand-light);color:var(--earth-dark);border:1px solid var(--sand)}
+.pa-edit:hover{background:var(--sand)}
+.pa-del{background:#fde8e2;color:var(--danger);border:1px solid rgba(184,104,64,0.15)}
+.pa-del:hover{background:#f5ccc2}
+
+/* ===== FOOD INGREDIENT DB ===== */
+.db-section{margin-top:20px;border-top:2px solid var(--sand);padding-top:16px}
+.db-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--earth-dark);margin-bottom:4px}
+.db-sub{font-size:11px;color:var(--warm-gray);margin-bottom:12px}
+.db-cat-nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.db-cat-btn{padding:7px 13px;border-radius:18px;border:1px solid var(--sand);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.db-cat-btn.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.db-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.db-card{background:#fff;border-radius:10px;border:1px solid rgba(139,111,71,0.13);overflow:hidden;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 7px rgba(74,55,40,0.06)}
+.db-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(74,55,40,0.14)}
+.db-img{width:100%;height:130px;object-fit:cover;background:var(--sand-light);display:block}
+.db-img-placeholder{width:100%;height:130px;background:linear-gradient(135deg,var(--sand-light),var(--sand));display:flex;align-items:center;justify-content:center;font-size:36px}
+.db-name{font-size:13px;font-weight:500;color:var(--earth-dark);padding:8px 10px 2px;line-height:1.3}
+.db-name-ja{font-size:10px;color:var(--warm-gray);padding:0 10px 8px}
+.db-add-btn{background:linear-gradient(135deg,var(--sand-light),var(--sand));border:2px dashed rgba(139,111,71,0.3);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:185px;cursor:pointer;transition:all 0.2s;color:var(--warm-gray);font-size:12px;gap:5px}
+.db-add-btn:hover{border-color:var(--earth);color:var(--earth);background:var(--sand)}
+.db-add-btn .add-icon{font-size:24px}
+
+/* Ingredient detail modal */
+.ing-modal-img{width:100%;height:240px;object-fit:cover;border-radius:10px;margin-bottom:14px;background:var(--sand-light);display:flex;align-items:center;justify-content:center;font-size:64px}
+.ing-lang-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.ing-lang-tab{padding:5px 12px;border-radius:14px;border:1px solid var(--sand);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.ing-lang-tab.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.ing-desc-box{background:linear-gradient(135deg,#edf5ed,#e6f1e6);border:1px solid rgba(78,107,68,0.2);border-left:4px solid var(--forest);border-radius:9px;padding:13px 15px;min-height:80px;font-size:15px;line-height:1.85;color:var(--charcoal)}
+.ing-desc-box .loading{color:var(--warm-gray);font-style:italic}
+
+/* Edit ingredient form */
+.ing-edit-wrap{display:none}
+.ing-edit-wrap.show{display:block}
+.lang-desc-row{margin-bottom:10px}
+.lang-desc-row label{font-size:11px;color:var(--warm-gray);display:flex;align-items:center;gap:5px;margin-bottom:4px;letter-spacing:1px}
+
+/* Free trans */
+.ft-card{background:#fff;border-radius:12px;border:1px solid rgba(139,111,71,0.14);overflow:hidden;box-shadow:0 2px 10px rgba(74,55,40,0.07)}
+.ft-head{background:linear-gradient(135deg,var(--earth-dark),var(--earth-mid));padding:12px 16px;display:flex;align-items:center;gap:10px}
+.fh-icon{font-size:20px}
+.fh-title{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:17px;font-weight:300}
+.fh-sub{color:rgba(232,220,200,0.6);font-size:11px;margin-top:1px}
+.ft-body{padding:14px 16px}
+.ft-wrap{position:relative;margin-bottom:10px}
+.ft-ta{width:100%;border:1px solid rgba(139,111,71,0.25);border-radius:9px;padding:11px 13px;font-size:14px;font-family:inherit;background:var(--cream);color:var(--charcoal);resize:none;line-height:1.75;transition:border-color 0.2s}
+.ft-ta:focus{outline:none;border-color:var(--earth);background:#fff}
+.ft-cc{position:absolute;bottom:8px;right:11px;font-size:10px;color:var(--warm-gray)}
+.ft-result{display:none;margin-top:4px}
+.ft-res-box{background:linear-gradient(135deg,#edf5ed,#e6f1e6);border:1px solid rgba(78,107,68,0.2);border-left:4px solid var(--forest);border-radius:9px;padding:14px 16px;margin-bottom:10px}
+.ft-res-lang{font-size:11px;color:var(--warm-gray);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.ft-res-text{font-size:20px;line-height:1.85;color:var(--charcoal)}
+.ft-res-jp{margin-top:10px;padding-top:10px;border-top:1px solid rgba(78,107,68,0.15);font-size:12px;color:var(--warm-gray);line-height:1.7}
+
+/* GUEST VIEW */
+#guestView{display:none;position:fixed;inset:0;z-index:5000;background:linear-gradient(160deg,#1a0f08,#3a2510 50%,#1a2820);overflow-y:auto}
+.gv-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(232,220,200,0.1)}
+.gv-logo{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:20px;letter-spacing:5px}
+.gv-close{background:rgba(232,220,200,0.12);border:1px solid rgba(232,220,200,0.25);color:var(--sand);padding:7px 16px;border-radius:18px;cursor:pointer;font-size:13px;font-family:inherit}
+.gv-body{padding:28px 24px;display:flex;flex-direction:column;align-items:center;min-height:calc(100vh - 60px)}
+.gv-flag{font-size:38px;margin-bottom:14px;text-align:center;display:block}
+.gv-main-box{background:rgba(255,255,255,0.1);border-radius:18px;padding:30px 26px;text-align:center;width:100%;max-width:680px;margin-bottom:18px}
+.gv-text{font-size:28px;line-height:1.9;color:var(--sand-light)}
+.gv-jp-box{background:rgba(255,255,255,0.06);border-radius:12px;padding:13px 18px;width:100%;max-width:680px;text-align:center}
+.gv-jp-lbl{font-size:10px;color:rgba(232,220,200,0.4);letter-spacing:3px;display:block;margin-bottom:5px}
+.gv-jp-text{font-size:15px;color:rgba(232,220,200,0.65);line-height:1.8}
+
+/* INGREDIENT GUEST VIEW */
+.gv-ing-img{width:100%;max-width:680px;height:220px;object-fit:cover;border-radius:16px;margin-bottom:18px;background:rgba(255,255,255,0.1)}
+.gv-ing-img-placeholder{width:100%;max-width:680px;height:220px;border-radius:16px;margin-bottom:18px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:72px}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 158px)}
+.chat-hint{background:linear-gradient(135deg,#f5f0e8,#ede8dc);border:1px solid rgba(196,151,58,0.25);border-left:4px solid var(--gold);border-radius:9px;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.75;color:#5a4530}
+.chat-lang-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.clr-lbl{font-size:11px;color:var(--warm-gray);letter-spacing:1px}
+.clang-btn{padding:5px 12px;border-radius:14px;border:1px solid var(--sand);background:var(--cream);color:var(--earth-dark);cursor:pointer;font-size:11px;font-family:inherit;transition:all 0.2s}
+.clang-btn.active{background:var(--earth-dark);color:var(--sand);border-color:var(--earth-dark)}
+.chat-msgs{flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:11px}
+.chat-msgs::-webkit-scrollbar{width:4px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--earth);border-radius:2px}
+.cmsg{display:flex;gap:9px;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.cmsg.staff{flex-direction:row-reverse}
+.cavatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px}
+.cmsg.staff .cavatar{background:var(--earth-dark)}
+.cmsg.guest .cavatar{background:var(--sand-light);border:2px solid var(--sand)}
+.cbwrap{max-width:76%}
+.cmsg.staff .cbwrap{align-items:flex-end;display:flex;flex-direction:column}
+.cmsg.guest .cbwrap{align-items:flex-start;display:flex;flex-direction:column}
+.cbubble{padding:10px 14px;border-radius:13px;font-size:13px;line-height:1.75}
+.cmsg.staff .cbubble{background:var(--earth-dark);color:var(--sand-light);border-radius:13px 13px 4px 13px}
+.cmsg.guest .cbubble{background:#fff;color:var(--charcoal);border:1px solid rgba(139,111,71,0.15);border-radius:13px 13px 13px 4px}
+.cborig{font-size:10px;opacity:0.5;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.12)}
+.cmsg.guest .cborig{border-top-color:rgba(0,0,0,0.07)}
+.cbtrans{font-size:12px;margin-top:2px;font-style:italic;opacity:0.85}
+.ctime{font-size:10px;color:var(--warm-gray);margin-top:2px}
+.cmsg.staff .ctime{text-align:right}
+.chat-input-area{background:#fff;border-top:1px solid var(--sand);padding:10px 12px;flex-shrink:0}
+.role-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.role-tog{display:flex;background:var(--sand-light);border-radius:7px;padding:3px;border:1px solid var(--sand)}
+.rb{padding:6px 12px;border-radius:5px;border:none;background:transparent;color:var(--warm-gray);cursor:pointer;font-size:11px;font-family:inherit;transition:all 0.2s;white-space:nowrap}
+.rb.active{background:var(--earth-dark);color:var(--sand)}
+.ci-row{display:flex;gap:7px;align-items:flex-end}
+.ci-ta{flex:1;border:1px solid rgba(139,111,71,0.25);border-radius:9px;padding:8px 12px;font-size:13px;font-family:inherit;resize:none;background:var(--cream);color:var(--charcoal);max-height:80px;transition:border-color 0.2s;line-height:1.6}
+.ci-ta:focus{outline:none;border-color:var(--earth);background:#fff}
+.ci-send{background:var(--earth-dark);color:var(--sand);border:none;border-radius:9px;padding:8px 14px;font-size:18px;cursor:pointer;transition:all 0.2s;flex-shrink:0}
+.ci-send:hover{background:var(--earth-mid)}
+
+@media(min-width:600px){.db-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* WIFI SECTION */
+.wifi-section{margin-bottom:20px}
+.wifi-title{font-family:"Cormorant Garamond",serif;font-size:20px;color:var(--earth-dark);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.wifi-cards{display:flex;flex-direction:column;gap:12px}
+.wifi-card{background:#fff;border:1px solid rgba(139,111,71,0.14);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(74,55,40,0.06)}
+.wifi-card-head{background:linear-gradient(135deg,var(--ocean),#2a5060);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.wifi-room{font-family:"Cormorant Garamond",serif;color:var(--sand);font-size:16px;font-weight:300;letter-spacing:1px}
+.wifi-edit-btn{background:rgba(232,220,200,0.15);border:1px solid rgba(232,220,200,0.25);color:var(--sand);padding:4px 12px;border-radius:12px;cursor:pointer;font-size:11px;font-family:inherit}
+.wifi-body{padding:14px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.wifi-info{flex:1;min-width:140px}
+.wifi-ssid-lbl{font-size:10px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:3px}
+.wifi-ssid{font-size:15px;color:var(--earth-dark);font-weight:500;margin-bottom:10px}
+.wifi-pass-lbl{font-size:10px;color:var(--warm-gray);letter-spacing:2px;margin-bottom:3px}
+.wifi-pass{font-size:18px;color:var(--charcoal);font-family:monospace;letter-spacing:2px;word-break:break-all}
+.wifi-qr-wrap{flex-shrink:0;background:white;padding:8px;border-radius:8px;border:1px solid var(--sand)}
+.wifi-qr-wrap canvas,.wifi-qr-wrap img{display:block}
+.wifi-show-btn{width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-size:13px;background:linear-gradient(135deg,var(--ocean),#2a5060);color:white;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;transition:all 0.2s}
+.wifi-show-btn:hover{opacity:0.9}
+/* WiFi edit modal */
+.wifi-modal-form{display:flex;flex-direction:column;gap:2px}
+/* Guest WiFi full screen */
+.gv-wifi-room{font-family:"Cormorant Garamond",serif;font-size:28px;color:var(--sand);letter-spacing:2px;text-align:center;margin-bottom:20px}
+.gv-qr-center{display:flex;justify-content:center;margin-bottom:20px}
+.gv-qr-box{background:white;padding:16px;border-radius:16px;display:inline-block}
+.gv-wifi-details{background:rgba(255,255,255,0.1);border-radius:14px;padding:20px 24px;width:100%;max-width:480px;text-align:center}
+.gv-wifi-row{margin-bottom:12px}
+.gv-wifi-row-lbl{font-size:11px;color:rgba(232,220,200,0.5);letter-spacing:3px;margin-bottom:4px}
+.gv-wifi-row-val{font-size:20px;color:var(--sand-light);font-family:monospace;letter-spacing:2px;word-break:break-all}
+.gv-wifi-hint{font-size:13px;color:rgba(232,220,200,0.5);margin-top:14px;line-height:1.7}
+
+/* SWIPE NAV in guest view */
+.gv-nav{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:680px;margin-top:20px;gap:10px}
+.gv-nav-btn{background:rgba(232,220,200,0.12);border:1px solid rgba(232,220,200,0.25);color:var(--sand);width:52px;height:52px;border-radius:50%;font-size:22px;cursor:pointer;flex-shrink:0;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+.gv-nav-btn:hover{background:rgba(232,220,200,0.25)}
+.gv-nav-btn:disabled{opacity:0.2;cursor:default}
+.gv-nav-counter{font-family:'Cormorant Garamond',serif;color:rgba(232,220,200,0.5);font-size:14px;letter-spacing:2px;text-align:center;flex:1}
+.gv-swipe-hint{font-size:11px;color:rgba(232,220,200,0.3);text-align:center;margin-top:8px;letter-spacing:1px}
+#guestView{touch-action:pan-y}
+
+/* EXPORT */
+.export-bar{background:linear-gradient(135deg,#1e3828,var(--forest));padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.export-bar-txt{color:rgba(232,220,200,0.7);font-size:11px;letter-spacing:0.5px}
+.export-btn{background:var(--gold);color:#fff;border:none;border-radius:18px;padding:7px 16px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500;transition:all 0.2s;white-space:nowrap}
+.export-btn:hover{background:#a07c28;transform:translateY(-1px)}
+
+/* PHOTO UPLOAD */
+.photo-upload-wrap{margin-bottom:10px}
+.photo-src-row{display:flex;gap:8px;margin-bottom:8px}
+.photo-src-btn{flex:1;padding:10px 8px;border-radius:9px;border:1.5px dashed rgba(139,111,71,0.3);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;text-align:center;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.photo-src-btn:hover{border-color:var(--earth);background:var(--sand)}
+.photo-src-btn .psi{font-size:22px}
+.photo-preview-img{width:100%;height:130px;object-fit:cover;border-radius:8px;display:block;margin-top:4px;border:1px solid var(--sand)}
+
+/* INGREDIENT KEYWORD LINK */
+.ing-keyword{background:rgba(78,107,68,0.15);color:var(--forest);border-bottom:2px solid var(--forest);cursor:pointer;border-radius:3px;padding:0 3px;font-weight:500;transition:all 0.15s;white-space:nowrap}
+.ing-keyword:hover{background:rgba(78,107,68,0.3)}
+/* translation status badge */
+.trans-badge{font-size:10px;padding:2px 7px;border-radius:8px;display:inline-block;margin-bottom:6px}
+.trans-badge.stored{background:#e8f5e9;color:var(--forest);border:1px solid rgba(78,107,68,0.3)}
+.trans-badge.live{background:var(--sand-light);color:var(--warm-gray);border:1px solid var(--sand)}
+
+/* AREA TAB */
+.area-cat-nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.area-cat-btn{padding:7px 13px;border-radius:18px;border:1px solid var(--sand);background:var(--sand-light);color:var(--earth-dark);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s}
+.area-cat-btn.active{background:var(--ocean);color:#fff;border-color:var(--ocean)}
+.area-card{background:#fff;border:1px solid rgba(139,111,71,0.14);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(74,55,40,0.06);margin-bottom:12px}
+.area-card-head{background:linear-gradient(135deg,var(--ocean),#2a5060);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.area-card-name{font-family:'Cormorant Garamond',serif;color:var(--sand);font-size:17px;font-weight:300;letter-spacing:1px}
+.area-card-cat{font-size:10px;color:rgba(232,220,200,0.6);letter-spacing:2px;margin-top:2px}
+.area-card-arrow{color:rgba(232,220,200,0.7);font-size:20px;transition:transform 0.2s}
+.area-card.open .area-card-arrow{transform:rotate(90deg)}
+.area-card-body{max-height:0;overflow:hidden;transition:max-height 0.35s ease}
+.area-card.open .area-card-body{max-height:700px}
+.area-card-inner{padding:14px 16px}
+.area-desc{font-size:13px;line-height:1.85;color:var(--charcoal);margin-bottom:12px}
+.area-map-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--sand);margin-bottom:10px;background:var(--sand-light)}
+.area-map-wrap iframe{display:block;width:100%;height:200px;border:none}
+.area-btns{display:flex;gap:8px;flex-wrap:wrap}
+.area-open-btn{background:var(--ocean);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s}
+.area-open-btn:hover{opacity:0.85}
+.area-show-btn{background:var(--earth-dark);color:var(--sand);border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s}
+.area-show-btn:hover{opacity:0.85}
+.area-edit-btn{background:var(--sand-light);color:var(--earth-dark);border:1px solid var(--sand);border-radius:8px;padding:9px 14px;font-size:12px;font-family:inherit;cursor:pointer;transition:all 0.2s}
+.area-edit-btn:hover{background:var(--sand)}
+.area-add-card{background:linear-gradient(135deg,var(--sand-light),var(--sand));border:2px dashed rgba(139,111,71,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:18px;cursor:pointer;color:var(--warm-gray);font-size:13px;transition:all 0.2s;margin-bottom:12px}
+.area-add-card:hover{border-color:var(--earth);color:var(--earth);background:var(--sand)}
+/* Guest view area */
+.gv-area-name{font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--sand);letter-spacing:2px;text-align:center;margin-bottom:6px}
+.gv-area-cat{font-size:12px;color:rgba(232,220,200,0.5);letter-spacing:3px;text-align:center;margin-bottom:20px}
+.gv-area-map{border-radius:14px;overflow:hidden;width:100%;max-width:680px;margin-bottom:16px}
+.gv-area-map iframe{display:block;width:100%;height:300px;border:none}
+.gv-area-desc{background:rgba(255,255,255,0.1);border-radius:14px;padding:18px 22px;width:100%;max-width:680px;font-size:16px;line-height:1.9;color:var(--sand-light);text-align:center}
+.gv-area-maplink{margin-top:14px;display:flex;justify-content:center}
+.gv-area-maplink a{background:var(--ocean);color:#fff;padding:11px 24px;border-radius:22px;text-decoration:none;font-size:14px;display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-logo">
+    <span class="ww">WASSA WASSA</span>
+    <span class="sub">Staff Communication Tool</span>
+  </div>
+  <div class="sp-div"></div>
+  <div class="sp-prompt">ゲストの言語を選択</div>
+  <div class="sp-langs">
+    <button class="sp-btn" onclick="selectLang('en')"><span class="flag">🇬🇧</span><span class="lname">English</span><span class="lsub">英語</span></button>
+    <button class="sp-btn" onclick="selectLang('zh-TW')"><span class="flag">🇹🇼</span><span class="lname">繁體中文</span><span class="lsub">台湾・香港</span></button>
+    <button class="sp-btn" onclick="selectLang('zh-CN')"><span class="flag">🇨🇳</span><span class="lname">简体中文</span><span class="lsub">中国大陸</span></button>
+    <button class="sp-btn" onclick="selectLang('ko')"><span class="flag">🇰🇷</span><span class="lname">한국어</span><span class="lsub">韓国語</span></button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="hd-left">
+      <div class="hd-logo">WASSA WASSA</div>
+      <div class="hd-badge">Staff Tool</div>
+    </div>
+    <button class="hd-lang" onclick="document.getElementById('splash').classList.remove('hide')">
+      <span id="hdFlag">🇬🇧</span><span id="hdName">English</span><span style="opacity:0.5;font-size:10px">▼</span>
+    </button>
+  </div>
+
+  <div class="export-bar">
+    <span class="export-bar-txt" id="saveStatus">📲 自動保存 ON</span>
+    <div style="display:flex;gap:8px">
+      <button class="export-btn" onclick="exportHTML()" style="background:var(--forest)">📥 バックアップ</button>
+      <button class="export-btn" onclick="clearAllData()">🗑 リセット</button>
+    </div>
+  </div>
+  <div class="tab-bar" id="tabBar">
+    <div class="tab-item active" onclick="showTab('greet')" data-t="greet"><span class="ti">👋</span>ご挨拶</div>
+    <div class="tab-item" onclick="showTab('floor1')" data-t="floor1"><span class="ti">🏠</span>1F案内</div>
+    <div class="tab-item" onclick="showTab('floor2')" data-t="floor2"><span class="ti">🗝</span>2F・チェックイン</div>
+    <div class="tab-item" onclick="showTab('dinner')" data-t="dinner"><span class="ti">🌙</span>夕食</div>
+    <div class="tab-item" onclick="showTab('breakfast')" data-t="breakfast"><span class="ti">☀️</span>朝食</div>
+    <div class="tab-item" onclick="showTab('checkout')" data-t="checkout"><span class="ti">🚪</span>チェックアウト</div>
+    <div class="tab-item" onclick="showTab('notice')" data-t="notice"><span class="ti">⚠️</span>注意事項</div>
+    <div class="tab-item" onclick="showTab('free')" data-t="free"><span class="ti">🔤</span>自由入力</div>
+    <div class="tab-item" onclick="showTab('deluxe')" data-t="deluxe"><span class="ti">🛏</span>デラックス</div>
+    <div class="tab-item" onclick="showTab('area')" data-t="area"><span class="ti">🗺</span>周辺情報</div>
+    <div class="tab-item" onclick="showTab('chat')" data-t="chat"><span class="ti">💬</span>チャット</div>
+  </div>
+
+  <div class="content" id="mainContent">
+    <!-- panels injected by JS -->
+    <div class="tab-panel active" id="tp-greet"></div>
+    <div class="tab-panel" id="tp-floor1"></div>
+    <div class="tab-panel" id="tp-floor2"></div>
+    <div class="tab-panel" id="tp-dinner"></div>
+    <div class="tab-panel" id="tp-breakfast"></div>
+    <div class="tab-panel" id="tp-checkout"></div>
+    <div class="tab-panel" id="tp-notice"></div>
+    <div class="tab-panel" id="tp-deluxe"></div>
+    <div class="tab-panel" id="tp-area"></div>
+    <div class="tab-panel" id="tp-free">
+      <div class="sec-title">🔤 自由入力翻訳</div>
+      <div class="sec-sub">日本語を入力してゲストの言語に即翻訳</div>
+      <div class="ft-card">
+        <div class="ft-head"><span class="fh-icon">✍️</span><div><div class="fh-title">日本語 → <span id="ftLangSpan">English</span></div><div class="fh-sub">入力後「翻訳」を押す</div></div></div>
+        <div class="ft-body">
+          <div class="ft-wrap">
+            <textarea class="ft-ta" id="ftInput" rows="4" placeholder="ここに日本語で入力..." oninput="ftCC()"></textarea>
+            <span class="ft-cc" id="ftCC">0文字</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="btn btn-dark btn-sm" onclick="doFT()">🌐 翻訳する</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearFT()">✕ クリア</button>
+          </div>
+          <div class="ft-result" id="ftResult">
+            <div class="ft-res-box">
+              <div class="ft-res-lang" id="ftResLang"></div>
+              <div class="ft-res-text" id="ftResText"></div>
+              <div class="ft-res-jp" id="ftResJP"></div>
+            </div>
+            <button class="show-big-btn" onclick="showFTGuest()">📱 大画面でゲストに見せる</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tp-chat">
+      <div class="chat-wrap">
+        <div class="chat-hint"><strong>💡 使い方：</strong> スタッフが日本語入力 → 自動翻訳 → タブレットをゲストに向ける。ゲストが返事する時は「👤ゲスト」に切り替えて入力してもらう。</div>
+        <div class="chat-lang-row">
+          <span class="clr-lbl">ゲスト言語：</span>
+          <button class="clang-btn" onclick="switchCL('en')" data-cl="en">🇬🇧 EN</button>
+          <button class="clang-btn" onclick="switchCL('zh-TW')" data-cl="zh-TW">🇹🇼 繁</button>
+          <button class="clang-btn" onclick="switchCL('zh-CN')" data-cl="zh-CN">🇨🇳 简</button>
+          <button class="clang-btn" onclick="switchCL('ko')" data-cl="ko">🇰🇷 한</button>
+        </div>
+        <div class="chat-msgs" id="chatMsgs">
+          <div class="cmsg staff">
+            <div class="cavatar">👩‍💼</div>
+            <div class="cbwrap">
+              <div class="cbubble">WASSA WASSAへようこそ！なんでもどうぞ。<div class="cborig">↓ ゲスト言語</div><div class="cbtrans" id="welcomeTrans"><div class="dots"><span></span><span></span><span></span></div></div></div>
+              <div class="ctime" id="welcomeTime"></div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="role-row">
+            <div class="role-tog">
+              <button class="rb active" onclick="setRole('staff')" id="rbStaff">👩‍💼 スタッフ（日）</button>
+              <button class="rb" onclick="setRole('guest')" id="rbGuest">👤 ゲスト</button>
+            </div>
+            <button class="btn btn-red btn-sm" onclick="clearChat()">🗑</button>
+          </div>
+          <div class="ci-row">
+            <textarea class="ci-ta" id="ciInput" rows="1" placeholder="日本語でメッセージ..." onkeydown="ciKD(event)" oninput="autoResize(this)"></textarea>
+            <button class="ci-send" onclick="sendChat()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GUEST FULL VIEW -->
+<div id="guestView">
+  <div class="gv-hdr">
+    <div class="gv-logo">WASSA WASSA</div>
+    <button class="gv-close" onclick="closeGV()">✕ 閉じる</button>
+  </div>
+  <div class="gv-body" id="gvBody"></div>
+  <div class="gv-nav" id="gvNav" style="display:none">
+    <button class="gv-nav-btn" id="gvPrev" onclick="gvNavigate(-1)">‹</button>
+    <div class="gv-nav-counter" id="gvCounter"></div>
+    <button class="gv-nav-btn" id="gvNext" onclick="gvNavigate(1)">›</button>
+  </div>
+  <div class="gv-swipe-hint" id="gvHint" style="display:none">← swipe →</div>
+</div>
+
+<!-- EDIT PHRASE MODAL -->
+<div class="modal-ov" id="editModal">
+  <div class="modal-box">
+    <div class="modal-ttl">✏️ フレーズ編集</div>
+    <label class="form-lbl">日本語テキスト</label>
+    <textarea class="form-ta" id="editText" rows="3" style="margin-bottom:8px" oninput="onEditTextChange()"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <label class="form-lbl" style="margin:0">翻訳テキスト（ゲスト表示用）</label>
+      <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateEditField()">🌐 翻訳して入力</button>
+    </div>
+    <textarea class="form-ta" id="editTrans" rows="3" placeholder="翻訳テキストをここに入力（空の場合はリアルタイム翻訳）" style="margin-bottom:12px;border-left:4px solid var(--forest)"></textarea>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="savePhrase()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- INGREDIENT MODAL -->
+<div class="modal-ov" id="ingModal">
+  <div class="modal-box">
+    <div class="modal-ttl" id="ingModalTitle">食材詳細</div>
+
+    <!-- View mode -->
+    <div id="ingViewMode">
+      <div id="ingModalImgWrap"></div>
+      <div style="margin-bottom:10px">
+        <div class="ing-lang-tabs" id="ingLangTabs"></div>
+        <div class="ing-desc-box" id="ingDescBox"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gold btn-sm" onclick="showIngGuest()">📱 ゲストに見せる</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleIngEdit()">✏️ 編集</button>
+        <button class="btn btn-red btn-sm" onclick="deleteIng()">✕ 削除</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeIngModal()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- Edit mode -->
+    <div id="ingEditMode" class="ing-edit-wrap">
+      <label class="form-lbl">写真URL（ネット画像URL、または空欄で絵文字表示）</label>
+      <input class="form-inp" id="ingEditImg" placeholder="https://...jpg">
+      <label class="form-lbl">絵文字（写真なしの場合）</label>
+      <input class="form-inp" id="ingEditEmoji" placeholder="🐟">
+      <label class="form-lbl">名前（日本語）</label>
+      <input class="form-inp" id="ingEditName">
+      <label class="form-lbl">名前（英語）</label>
+      <input class="form-inp" id="ingEditNameEn">
+      <label class="form-lbl">名前（繁體中文）</label>
+      <input class="form-inp" id="ingEditNameZhTW" placeholder="未入力の場合は日本語名でマッチ">
+      <label class="form-lbl">名前（简体中文）</label>
+      <input class="form-inp" id="ingEditNameZhCN" placeholder="未入力の場合は日本語名でマッチ">
+      <label class="form-lbl">名前（한국어）</label>
+      <input class="form-inp" id="ingEditNameKo" placeholder="未入力の場合は日本語名でマッチ">
+      <label class="form-lbl">カテゴリ</label>
+      <select class="form-sel" id="ingEditCat">
+        <option value="seafood">🐟 魚介類</option>
+        <option value="veggie">🥬 野菜</option>
+        <option value="fruit">🍋 フルーツ</option>
+        <option value="traditional">🍱 伝統食</option>
+      </select>
+      <div class="lang-desc-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="form-lbl" style="margin:0">🇯🇵 日本語説明</label>
+          <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAllIngDesc()">🌐 全言語に翻訳</button>
+        </div>
+        <textarea class="form-ta" id="ingEditJa" rows="2"></textarea>
+      </div>
+      <div class="lang-desc-row"><label class="form-lbl">🇬🇧 English</label><textarea class="form-ta" id="ingEditEn" rows="2"></textarea></div>
+      <div class="lang-desc-row"><label class="form-lbl">🇹🇼 繁體中文</label><textarea class="form-ta" id="ingEditZhTW" rows="2"></textarea></div>
+      <div class="lang-desc-row"><label class="form-lbl">🇨🇳 简体中文</label><textarea class="form-ta" id="ingEditZhCN" rows="2"></textarea></div>
+      <div class="lang-desc-row"><label class="form-lbl">🇰🇷 한국어</label><textarea class="form-ta" id="ingEditKo" rows="2"></textarea></div>
+      <div class="modal-act">
+        <button class="btn btn-ghost btn-sm" onclick="toggleIngEdit()">キャンセル</button>
+        <button class="btn btn-green btn-sm" onclick="saveIng()">💾 保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD INGREDIENT MODAL -->
+<div class="modal-ov" id="addIngModal">
+  <div class="modal-box">
+    <div class="modal-ttl">🌿 食材を追加</div>
+    <label class="form-lbl">写真</label>
+    <div class="photo-upload-wrap">
+      <div class="photo-src-row">
+        <label class="photo-src-btn" for="aIngFile">
+          <span class="psi">📷</span><span>カメラロールから選ぶ</span>
+          <input type="file" id="aIngFile" accept="image/*" style="display:none" onchange="onPhotoFile('aIng',this)">
+        </label>
+        <div class="photo-src-btn" onclick="togglePhotoUrl('aIng')">
+          <span class="psi">🔗</span><span>URLで指定</span>
+        </div>
+      </div>
+      <input class="form-inp" id="aIngImg" placeholder="https://...jpg" style="display:none" oninput="onPhotoUrl('aIng',this)">
+      <div id="aIngPreviewWrap"></div>
+    </div>
+    <label class="form-lbl">絵文字</label>
+    <input class="form-inp" id="aIngEmoji" placeholder="🐟">
+    <label class="form-lbl">名前（日本語）</label>
+    <input class="form-inp" id="aIngName" placeholder="グルクン">
+    <label class="form-lbl">名前（英語）</label>
+    <input class="form-inp" id="aIngNameEn" placeholder="Gurukun">
+    <label class="form-lbl">名前（繁體中文）</label>
+    <input class="form-inp" id="aIngNameZhTW" placeholder="未入力の場合は日本語名でマッチ">
+    <label class="form-lbl">名前（简体中文）</label>
+    <input class="form-inp" id="aIngNameZhCN" placeholder="未入力の場合は日本語名でマッチ">
+    <label class="form-lbl">名前（한국어）</label>
+    <input class="form-inp" id="aIngNameKo" placeholder="未入力の場合は日本語名でマッチ">
+    <label class="form-lbl">カテゴリ</label>
+    <select class="form-sel" id="aIngCat">
+      <option value="seafood">🐟 魚介類</option>
+      <option value="veggie">🥬 野菜</option>
+      <option value="fruit">🍋 フルーツ</option>
+      <option value="traditional">🍱 伝統食</option>
+    </select>
+    <div class="lang-desc-row">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <label class="form-lbl" style="margin:0">🇯🇵 日本語説明</label>
+        <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAllNewIngDesc()">🌐 全言語に翻訳</button>
+      </div>
+      <textarea class="form-ta" id="aIngJa" rows="2" placeholder="説明を入力..."></textarea>
+    </div>
+    <div class="lang-desc-row"><label class="form-lbl">🇬🇧 English</label><textarea class="form-ta" id="aIngEn" rows="2"></textarea></div>
+    <div class="lang-desc-row"><label class="form-lbl">🇹🇼 繁體中文</label><textarea class="form-ta" id="aIngZhTW" rows="2"></textarea></div>
+    <div class="lang-desc-row"><label class="form-lbl">🇨🇳 简体中文</label><textarea class="form-ta" id="aIngZhCN" rows="2"></textarea></div>
+    <div class="lang-desc-row"><label class="form-lbl">🇰🇷 한국어</label><textarea class="form-ta" id="aIngKo" rows="2"></textarea></div>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeAddIng()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="saveNewIng()">✓ 追加</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- WIFI EDIT MODAL -->
+<div class="modal-ov" id="wifiModal">
+  <div class="modal-box">
+    <div class="modal-ttl" id="wifiModalTitle">📶 Wi-Fi設定</div>
+    <div class="wifi-modal-form">
+      <label class="form-lbl">部屋名</label>
+      <input class="form-inp" id="wfRoom" style="margin-bottom:10px">
+      <label class="form-lbl">SSID（ネットワーク名）</label>
+      <input class="form-inp" id="wfSsid" style="margin-bottom:10px">
+      <label class="form-lbl">パスワード</label>
+      <input class="form-inp" id="wfPass" style="margin-bottom:10px">
+      <label class="form-lbl">暗号化方式</label>
+      <select class="form-sel" id="wfSec">
+        <option value="WPA">WPA/WPA2</option>
+        <option value="WEP">WEP</option>
+        <option value="nopass">なし（オープン）</option>
+      </select>
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeWifiModal()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="saveWifi()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- AREA ADD/EDIT MODAL -->
+<div class="modal-ov" id="areaModal">
+  <div class="modal-box">
+    <div class="modal-ttl" id="areaModalTitle">🗺 スポット追加</div>
+    <label class="form-lbl">スポット名（日本語）</label>
+    <input class="form-inp" id="areaName" placeholder="大宜味村道の駅">
+    <label class="form-lbl">カテゴリ</label>
+    <select class="form-sel" id="areaCat">
+      <option value="food">🍽 食事・カフェ</option>
+      <option value="nature">🌊 自然・景色</option>
+      <option value="shop">🛍 ショップ</option>
+      <option value="activity">🤿 アクティビティ</option>
+      <option value="other">📍 その他</option>
+    </select>
+    <label class="form-lbl">説明（日本語）</label>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:10px;color:var(--warm-gray)">スタッフ・ゲスト向け説明</span>
+      <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAreaDesc()">🌐 全言語に翻訳</button>
+    </div>
+    <textarea class="form-ta" id="areaDescJa" rows="2" placeholder="ビーチから徒歩5分。..." style="margin-bottom:10px"></textarea>
+    <div style="margin-bottom:10px">
+      <label class="form-lbl">🇬🇧 English</label>
+      <textarea class="form-ta" id="areaDescEn" rows="2"></textarea>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="form-lbl">🇹🇼 繁體中文</label>
+      <textarea class="form-ta" id="areaDescZhTW" rows="2"></textarea>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="form-lbl">🇨🇳 简体中文</label>
+      <textarea class="form-ta" id="areaDescZhCN" rows="2"></textarea>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="form-lbl">🇰🇷 한국어</label>
+      <textarea class="form-ta" id="areaDescKo" rows="2"></textarea>
+    </div>
+    <label class="form-lbl">Google Maps URL または 埋め込みURL</label>
+    <input class="form-inp" id="areaMapUrl" placeholder="https://maps.google.com/... または https://www.google.com/maps/embed?pb=...">
+    <div style="font-size:11px;color:var(--warm-gray);margin-bottom:10px;line-height:1.7">
+      💡 Google Mapsで場所を開き「共有」→「地図を埋め込む」→ iframeのsrc属性のURLをコピー
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-ghost btn-sm" onclick="closeAreaModal()">キャンセル</button>
+      <button class="btn btn-green btn-sm" onclick="saveArea()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const LANGS={
+  'en':    {flag:'🇬🇧',name:'English'},
+  'zh-TW': {flag:'🇹🇼',name:'繁體中文'},
+  'zh-CN': {flag:'🇨🇳',name:'简体中文'},
+  'ko':    {flag:'🇰🇷',name:'한국어'},
+};
+
+const TABS={
+  greet:    {label:'👋 ご挨拶',     hasDB:false},
+  floor1:   {label:'🏠 1F案内',     hasDB:false},
+  floor2:   {label:'🗝 2F・チェックイン', hasDB:false},
+  dinner:   {label:'🌙 夕食',       hasDB:true},
+  breakfast:{label:'☀️ 朝食',       hasDB:true},
+  checkout: {label:'🚪 チェックアウト', hasDB:false},
+  notice:   {label:'⚠️ 注意事項',   hasDB:false},
+  deluxe:   {label:'🛏 デラックスツイン', hasDB:false},
+};
+
+// Phrases per tab (ordered array)
+let phrases = {
+  greet:[
+    {id:1,text:"はじめまして。",trans:"Nice to meet you."},
+    {id:2,text:"私はゆうじです。",trans:"I'm Yuji."},
+    {id:3,text:"よろしくお願いします。",trans:"I look forward to staying with you."},
+  ],
+  floor1:[
+    {id:10,text:"お部屋の鍵の開け方を説明します。",trans:"I will explain how to unlock the room."},
+    {id:11,text:"お客様の部屋の番号は0000です。",trans:"Your room key number is 0000."},
+    {id:12,text:"ゆっくり4桁の数字を打ち込んだ後上部のボタンを押してください。これで鍵が開きます。",trans:"Slowly push the 4 number and push the button at the top. You can open the lock."},
+    {id:13,text:"閉める時は上部のボタンを押してください。",trans:"Please press the button at the top when closing."},
+    {id:14,text:"こちらがフロントのインターホンになっています。用事の際にはこちらをご利用ください。",trans:"This is the intercom for the front desk. Please use this."},
+    {id:15,text:"風呂は共用風呂となっています。入浴の際には必ず鍵をおかけください。24時間いつでも利用可能です。",trans:"The bath is a shared bath. Please be sure to lock the door when taking a bath. You can use 24 hours a day."},
+    {id:16,text:"使い終わったタオルはこちらのバスケットにお入れください。",trans:"Please put the used towels in this basket."},
+    {id:17,text:"ウォーターサーバーのお水は、私が山まで汲みに行っているミネラルウォーターです。",trans:"The water in the water server is the mineral water I went to the mountain to fetch."},
+    {id:18,text:"では、2階でウェルカムドリンクを出しながら、チェックインシートの記入をお願いいたします。パスポートの持参もお願いいたします。",trans:"Then, please fill out the check-in sheet while serving a welcome drink on the roof terrace. Please also bring your passport."},
+  ],
+  floor2:[
+    {id:20,text:"今日のウェルカムドリンクは、沖縄県産のハイビスカスジュースです。",trans:"Today's welcome drink is hibiscus juice from Okinawa Prefecture."},
+    {id:21,text:"今日の夕食の時間は何時にしますか？また食材でアレルギーなどはございますか？",trans:"What time do you start dinner today? Also, do you have any allergies to ingredients?"},
+    {id:22,text:"2階のトイレはこちらにございます。お食事の際やルーフテラスをご利用の場合はご利用ください。",trans:"The toilet on roof terrace is here. Please use at the roof terrace."},
+    {id:23,text:"こちらの露天風呂も24時間利用可能です。利用時は水着着用での使用をお願いしています。",trans:"This open-air bath is also available 24 hours a day. Please wear a swimsuit when using it."},
+    {id:24,text:"お風呂の栓を閉めるときは、こちらのレバーを閉めてください。開ける場合はこのように開けてください。",trans:"When closing the bath plug, please close this lever. If you want to open it, please open it like this."},
+    {id:25,text:"オレンジのレバーを捻ると60度のお湯が出ますので、お気をつけください。",trans:"If you twist the orange lever, 60 degrees of hot water will come out, so be careful."},
+    {id:26,text:"お風呂に水を入れてから貯まるまで15分ぐらいかかります。",trans:"It takes about 15 minutes to store water."},
+    {id:27,text:"ではごゆっくりおくつろぎください。",trans:"Then please take your time and relax."},
+  ],
+  dinner:[
+    {id:30,text:"夕食は屋上テラスにてご提供いたします。",trans:""},
+    {id:31,text:"お時間になりましたらお声がけいたします。",trans:""},
+    {id:32,text:"悪天候の場合は室内でのお食事となります。",trans:""},
+    {id:33,text:"本日の食材は地元で獲れた新鮮なものを使用しています。",trans:""},
+    {id:34,text:"食物アレルギーがある場合はお申し付けください。",trans:""},
+  ],
+  breakfast:[
+    {id:40,text:"朝食はパティオにてご提供いたします。",trans:""},
+    {id:41,text:"朝食のご準備ができましたらお声がけします。",trans:""},
+    {id:42,text:"朝食には地元の野菜や魚を使ったお料理をご用意しています。",trans:""},
+  ],
+  deluxe:[
+    {id:70,text:"こちらがデラックスツインルームです。2階全体がお客様専用のプライベート空間となっております。",trans:""},
+    {id:71,text:"専用の浴室・シャワールームはこちらです。",trans:""},
+    {id:72,text:"専用キッチンにはIHコンロ・冷蔵庫・電子レンジをご用意しています。",trans:""},
+    {id:73,text:"専用のパティオからは庭の景色をお楽しみいただけます。",trans:""},
+    {id:74,text:"屋上テラスへはこちらの階段からアクセスできます。",trans:""},
+    {id:75,text:"お部屋のWi-FiパスワードはWi-Fiカードに記載しています。",trans:""},
+    {id:76,text:"ご不明な点はいつでもお声がけください。",trans:""},
+  ],
+  checkout:[
+    {id:50,text:"チェックアウトは10時までとなっております。",trans:""},
+    {id:51,text:"お荷物はチェックアウト後もお預かりできます。",trans:""},
+    {id:52,text:"レイトチェックアウトはお一人様1時間2,200円で承っております。",trans:""},
+    {id:53,text:"またのお越しを心よりお待ちしております。",trans:""},
+  ],
+  notice:[
+    {id:60,text:"露天風呂をご利用の際は、必ず水着をご着用ください。",trans:""},
+    {id:61,text:"海でのご遊泳の際は、クラゲ対策にラッシュガードをお勧めします。",trans:""},
+    {id:62,text:"連泊の場合、お部屋の清掃はございません。",trans:""},
+    {id:63,text:"台風時は停電になる場合がございます。",trans:""},
+    {id:64,text:"ビーチパラソルとチェアの貸し出しは1日1,100円（税込）です。",trans:""},
+  ]
+};
+
+// Ingredient DB
+let ingredients = [
+  {id:101,cat:"veggie",emoji:"🟣",name:"紅芋",nameEn:"Beni-Imo (Purple Sweet Potato)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://sakuraco.com/cdn/shop/articles/purple-sweet-potato-farm-okinawa.jpg",ja:"鮮やかな紫色が美しいサツマイモ。アントシアニンが豊富で甘みが強い。タルト・アイスクリームで有名。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:102,cat:"veggie",emoji:"🌿",name:"島らっきょう",nameEn:"Shima Rakkyou (Island Shallot)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://theokinawadiet.com/wp-content/uploads/2021/03/shima-rakkyo.jpg",ja:"沖縄の伝統野菜。本土のらっきょうより小ぶりで、香りと辛味が強い。塩漬けや天ぷらで食す。長寿食材としても知られる。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:103,cat:"veggie",emoji:"🥒",name:"モーイ（赤瓜）",nameEn:"Moui (Okinawan Cucumber)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄の伝統的な瓜。薄い緑〜黄色の皮に淡白な味わい。味噌汁・炒め物・漬け物に使われる。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:104,cat:"veggie",emoji:"🥬",name:"ゴーヤー（苦瓜）",nameEn:"Goya (Bitter Melon)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://sakuraco.com/cdn/shop/articles/goya-bitter-melon-okinawa.jpg",ja:"沖縄を代表する野菜。独特の苦みはビタミンCが豊富で健康食材。ゴーヤーチャンプルーに欠かせない。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:105,cat:"veggie",emoji:"🌱",name:"フーチバー（よもぎ）",nameEn:"Fuuchibaa (Okinawan Mugwort)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄のよもぎ。本土のものより香りが強く、沖縄そばのトッピングや天ぷら、ジューシーに使われる。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:106,cat:"veggie",emoji:"🌿",name:"イーチョーバー（フェンネル）",nameEn:"Iichoobaar (Fennel)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://onnaeki.com/wp-content/uploads/2024/01/iichoobaa.jpg",ja:"沖縄で栽培されるフェンネル。甘い香りが特徴で、魚料理の風味付けや薬草茶として利用される。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:107,cat:"veggie",emoji:"🌿",name:"ハママーチ（琉球よもぎ）",nameEn:"Hamamaachi (Ryukyu Mugwort)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"海岸沿いに自生する琉球固有のよもぎ。香り高く、天ぷらや薬草として利用される。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:108,cat:"veggie",emoji:"🌺",name:"月桃",nameEn:"Gettou (Shell Ginger)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://yambaru-wanyu.com/wp-content/uploads/2019/06/gettou.jpg",ja:"沖縄に自生する大型のショウガ科植物。葉は餅を包む「ムーチー」に使用。抗菌・防虫効果もある。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:109,cat:"veggie",emoji:"🌿",name:"サクナ（長命草）",nameEn:"Sakuna (Longevity Herb)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"「一葉食べれば一日長生き」と言われる沖縄の薬草。βカロテン・ビタミンCが豊富。天ぷらやジュースに。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:110,cat:"veggie",emoji:"🌸",name:"クワンソウ（ねむりぐさ）",nameEn:"Kuwansou (Day Lily)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://okinawa-repeat.com/wp-content/uploads/2020/07/kuwansou.jpg",ja:"沖縄の伝統的な野草。「眠り草」とも呼ばれ、安眠効果があるとされる。炒め物・天ぷらで食す。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:111,cat:"veggie",emoji:"🟡",name:"うっちん（ウコン）",nameEn:"Ucchin (Turmeric)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄特産のウコン。肝機能サポートや抗炎症作用で知られる。うっちん茶として愛飲される。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:112,cat:"veggie",emoji:"🍈",name:"青パパイヤ",nameEn:"Ao-Papaya (Green Papaya)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"熟す前の緑のパパイヤ。シャキシャキした食感でチャンプルー（炒め物）に多用される。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:113,cat:"veggie",emoji:"🥒",name:"ナーベーラー（へちま）",nameEn:"Naabeeraa (Luffa)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄でへちまのこと。若い実を食用にし、みそ炒めが定番。とろりとした食感が特徴。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:114,cat:"veggie",emoji:"🥕",name:"チデークニ（島人参）",nameEn:"Chideekuni (Island Carrot)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄の在来種の人参。鮮やかな黄色が特徴で、通常の人参より柔らかく甘みが強い。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:115,cat:"veggie",emoji:"🥬",name:"チキナー（カラシナ）",nameEn:"Chikinaa (Mustard Greens)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄の伝統野菜カラシナの方言名。ほろ苦くピリッとした辛みが特徴。炒め物や漬け物として食卓に欠かせない。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:201,cat:"seafood",emoji:"🦑",name:"イカスミ",nameEn:"Ikasumi (Squid Ink)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://www.maff.go.jp/j/keikaku/syokubunka/k_ryouri/img/okinawa_17_1.jpg",ja:"沖縄料理に欠かせないイカの墨。独特の風味とコク。イカスミ汁・イカスミチャーハンに使われる。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:202,cat:"seafood",emoji:"🦑",name:"クブシミ（甲イカ）",nameEn:"Kubushimi (Cuttlefish)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://churaumi.okinawa/blog/wp-content/uploads/2023/kobushime.jpg",ja:"沖縄近海で獲れる甲イカ。肉厚で甘みがあり、刺身・天ぷら・炒め物で楽しむ。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:203,cat:"seafood",emoji:"🐚",name:"夜光貝",nameEn:"Yakougai (Turban Shell)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://foodslink.jp/syokuzaihyakka/syun/fish/img4/yakougai1.jpg",ja:"沖縄の大型の巻貝。貝殻が月光に輝くことから「夜光貝」の名がつく。コリコリした食感で刺身が絶品。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:204,cat:"seafood",emoji:"🌿",name:"もずく",nameEn:"Mozuku (Okinawan Seaweed)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Mozuku_seaweed.jpg/320px-Mozuku_seaweed.jpg",ja:"沖縄産もずくは国内生産量の約9割を占める。フコイダンを豊富に含み、健康食材として人気。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:205,cat:"seafood",emoji:"🐟",name:"ミーバイ",nameEn:"Miibai (Grouper)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄でハタ類の総称。引き締まった白身は上品な甘みがあり、刺身・煮付け・味噌汁で食す。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:206,cat:"seafood",emoji:"🐟",name:"ガラサーミーバイ（石垣鯛）",nameEn:"Garasaa Miibai (Spotted Knifejaw)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"黒と白のまだら模様が特徴的な高級魚。身は白く上品な味わい。刺身・塩焼きで楽しむ。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:207,cat:"seafood",emoji:"🐟",name:"ガーラ（ヒラアジ）",nameEn:"Gaara (Giant Trevally)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://churaumi.okinawa/blog/wp-content/uploads/2023/gaara.jpg",ja:"沖縄近海を泳ぐ大型のアジ。力強い引きで釣り人に人気。しっかりした旨みで刺身・焼き物に。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:208,cat:"seafood",emoji:"🔴",name:"アカマチ（尾長鯛）",nameEn:"Akamachi (Ruby Snapper)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://churaumi.okinawa/blog/wp-content/uploads/2023/11/akamachi.jpg",ja:"沖縄三大高級魚のひとつ。深紅の体が美しく「深海のルビー」とも呼ばれる。クセのない白身が絶品。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:209,cat:"seafood",emoji:"🐠",name:"イラブチャー（ブダイ）",nameEn:"Irabuchaa (Parrotfish)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"鮮やかな青・緑色の熱帯魚。淡白な白身で沖縄では酢味噌和えが定番。皮の食感も楽しめる。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:210,cat:"seafood",emoji:"🐟",name:"マクブ（ベラ）",nameEn:"Makubu (White-spotted Wrasse)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://churaumi.okinawa/blog/wp-content/uploads/2023/11/makubu.jpg",ja:"沖縄三大高級魚のひとつ。クセのない引き締まった白身は刺身で甘みが際立つ。幻の高級魚。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:211,cat:"seafood",emoji:"🐟",name:"クレーミーバイ（こしょう鯛）",nameEn:"Kuree Miibai (Pepper Snapper)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"こしょうのような斑点が特徴のミーバイ。身は柔らかく上品な甘み。刺身・煮付けで人気。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:212,cat:"seafood",emoji:"🐚",name:"シャコ貝",nameEn:"Shakogai (Giant Clam)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://amakuma-ryukyu.com/wp-content/uploads/2021/06/shakogai.jpg",ja:"世界最大級の貝。沖縄の珊瑚礁に生息。コリコリした食感と濃厚な旨み。刺身・焼き物で。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:213,cat:"seafood",emoji:"🐟",name:"マンビカー（シイラ）",nameEn:"Manbikaa (Mahi-mahi)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄ではポピュラーな白身魚。ハワイでは「マヒマヒ」として有名。淡白でくせなく食べやすい。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:301,cat:"traditional",emoji:"🐟",name:"いまいゆ",nameEn:"Imaiyu (Today's Fresh Fish)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://visitokinawa.jp/wp-content/uploads/imaiyu-market.jpg",ja:"「今日の魚」を意味する沖縄の言葉。その日に獲れた新鮮な地魚のこと。WASSA WASSAでは地元漁師から直接仕入れる。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:302,cat:"traditional",emoji:"🍢",name:"うむくじ天ぷら",nameEn:"Umukuji Tempura (Sweet Potato Starch Tempura)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://okinawaclip.com/wp-content/uploads/2019/10/umukuji-tempura.jpg",ja:"紅芋の澱粉で作る沖縄独特の天ぷら。もちもちした食感と素材の味を活かしたシンプルな揚げ物。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:303,cat:"traditional",emoji:"🐷",name:"あぐー（県産ブランド豚）",nameEn:"Agu Pork (Okinawan Heritage Pork)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"沖縄在来種の幻の豚。脂身が甘くとろけるような食感。通常の豚肉と比べ、旨みが格段に濃い。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:304,cat:"traditional",emoji:"🍵",name:"さんぴん茶",nameEn:"Sanpin Cha (Okinawan Jasmine Tea)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://kokoro-jp.com/wp-content/uploads/2021/05/sanpin-cha.jpg",ja:"沖縄で最もポピュラーなお茶。ジャスミン茶の一種で、さっぱりとした香りが沖縄の食卓に欠かせない。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:305,cat:"traditional",emoji:"⬜",name:"島豆腐",nameEn:"Shima Tofu (Okinawan Tofu)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"本土の豆腐より水分が少なくしっかりした食感。豆の風味が濃く、炒め物・チャンプルーに最適。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:306,cat:"traditional",emoji:"🥜",name:"ジーマミ豆腐",nameEn:"Jiimami Tofu (Peanut Tofu)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"落花生から作る沖縄独特の豆腐。もちもちした食感と濃厚なピーナッツの風味。甘いタレで食す。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:307,cat:"traditional",emoji:"🫘",name:"おから",nameEn:"Okara (Soy Pulp / Irichi)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"",ja:"島豆腐を作る際に出る豆乳の搾りかす。沖縄ではイリチー（炒め煮）にして食べる伝統がある。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:308,cat:"traditional",emoji:"🍲",name:"牛汁",nameEn:"Gyujiru (Okinawan Beef Soup)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://www.maff.go.jp/j/keikaku/syokubunka/k_ryouri/img/okinawa_26_1.jpg",ja:"牛肉とチデークニ（島人参）・昆布をカツオだしで煮込んだ沖縄の滋養食。冬の風邪予防や祝い事の席で振舞われる伝統料理。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:309,cat:"traditional",emoji:"🥩",name:"スーチカー（塩豚）",nameEn:"Suuchikaa (Okinawan Salted Pork)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://www.orionbeer.co.jp/story/wp-content/uploads/2022/01/suuchikaa.jpg",ja:"「スー（塩）」に「チカー（漬ける）」した豚バラ肉の塩漬け。琉球王国時代からの保存食。塩抜きしてボイルや炙りで食べる。泡盛との相性が抜群。",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:401,cat:"fruit",emoji:"🍋",name:"シークヮーサー",nameEn:"Shiikwasaa (Okinawan Lime)",nameZhTW:"",nameZhCN:"",nameKo:"",img:"https://japanese.tastejapan.com/wp-content/uploads/2021/06/shiikwasaa.jpg",ja:"沖縄原産の小さな柑橘。さわやかな酸味とノビレチン（抗酸化成分）が豊富。ドレッシングや飲み物に。",en:"",'zh-TW':"",'zh-CN':"",ko:""}
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let guestLang = 'en';
+let chatRole = 'staff';
+let editingPhraseId = null;
+let editingPhraseTab = null;
+let selectedIngId = null;
+let activeDbCat = 'seafood';
+
+// ============================================================
+// WIFI DATA
+// ============================================================
+let wifiNetworks = [
+  {id:'std',  room:'Superior Twin Room (1F)',  ssid:'WASSAWASSA',  pass:'wassa2024', sec:'WPA'},
+  {id:'dlx',  room:'Deluxe Twin Room (2F)',    ssid:'WASSAWASSA',  pass:'wassa2024', sec:'WPA'},
+  {id:'roof', room:'Roof Terrace',               ssid:'WASSAWASSA',  pass:'wassa2024', sec:'WPA'},
+];
+let editingWifiId = null;
+
+let lastFTjp = '', lastFTtrans = '';
+let gvTab = null, gvPhraseIds = null, gvCurrentIdx = -1;
+// Touch swipe
+let gvTouchX = null;
+let currentIngLang = 'ja'; // for modal lang tabs
+
+// ============================================================
+// TRANSLATION
+// ============================================================
+async function translate(text, toLang) {
+  if (!text.trim()) return '';
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ja|${toLang}`);
+    const d = await r.json();
+    return d.responseStatus === 200 ? d.responseData.translatedText : '(翻訳エラー)';
+  } catch(e) { return '(ネットワークエラー)'; }
+}
+async function translateFrom(text, fromLang) {
+  if (!text.trim()) return '';
+  try {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|ja`);
+    const d = await r.json();
+    return d.responseStatus === 200 ? d.responseData.translatedText : '(翻訳エラー)';
+  } catch(e) { return '(ネットワークエラー)'; }
+}
+
+// ============================================================
+// INIT / LANG SELECT
+// ============================================================
+function selectLang(lang) {
+  // Load saved data first
+  loadFromStorage();
+  guestLang = lang;
+  document.getElementById('splash').classList.add('hide');
+  document.getElementById('hdFlag').textContent = LANGS[lang].flag;
+  document.getElementById('hdName').textContent = LANGS[lang].name;
+  document.getElementById('ftLangSpan').textContent = LANGS[lang].name;
+  updateChatLangBtns();
+  document.getElementById('rbGuest').textContent = `👤 ${LANGS[lang].flag} ゲスト`;
+  translateWelcome();
+  // Build all panels
+  Object.keys(TABS).forEach(t => buildPanel(t));
+  buildAreaPanel();
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('tp-' + name).classList.add('active');
+  document.querySelector(`[data-t="${name}"]`).classList.add('active');
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+// ============================================================
+// BUILD PHRASE PANEL
+// ============================================================
+function buildPanel(tab) {
+  const cfg = TABS[tab];
+  if (!cfg) return;
+  const el = document.getElementById('tp-' + tab);
+  if (!el) return;
+
+  let html = `
+    <div class="sec-title">${cfg.label}</div>
+    <div class="sec-sub">フレーズをタップ → 翻訳 → ゲストに見せる ／ ドラッグで順番変更</div>
+    <div class="add-form" id="af-${tab}">
+      <label class="form-lbl">日本語テキスト</label>
+      <textarea class="form-ta" id="nt-${tab}" rows="3" placeholder="日本語でフレーズを入力..." style="margin-bottom:8px"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label class="form-lbl" style="margin:0">翻訳テキスト（任意）</label>
+        <button class="btn btn-dark btn-sm" style="padding:4px 10px;font-size:11px" onclick="translateAddField('${tab}')">🌐 翻訳して入力</button>
+      </div>
+      <textarea class="form-ta" id="nt-trans-${tab}" rows="3" placeholder="空の場合はリアルタイム翻訳" style="margin-bottom:10px;border-left:4px solid var(--forest)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-green btn-sm" onclick="addPhrase('${tab}')">✓ 追加</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAdd('${tab}')">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-dark btn-sm" onclick="toggleAdd('${tab}')">＋ フレーズ追加</button>
+    </div>
+    <div class="phrase-list" id="pl-${tab}"></div>`;
+
+  if (tab === 'floor2') {
+    html += '<div style="margin-top:20px;border-top:2px solid var(--sand);padding-top:16px">'
+          + '<div style="font-family:Cormorant Garamond,serif;font-size:20px;color:var(--earth-dark);margin-bottom:12px">&#x1F4F6; Wi-Fi</div>'
+          + '<div id="wifi-section-floor2"></div>'
+          + '</div>';
+  }
+
+  if (cfg.hasDB) {
+    html += `
+      <div class="db-section">
+        <div class="db-title">🌿 沖縄食材データベース</div>
+        <div class="db-sub">食材をタップして説明をゲストに見せる</div>
+        <div class="db-cat-nav" id="dcn-${tab}">
+          <button class="db-cat-btn active" onclick="switchDbCat('${tab}','seafood')" data-dc="${tab}-seafood">🐟 魚介類</button>
+          <button class="db-cat-btn" onclick="switchDbCat('${tab}','veggie')" data-dc="${tab}-veggie">🥬 野菜</button>
+          <button class="db-cat-btn" onclick="switchDbCat('${tab}','fruit')" data-dc="${tab}-fruit">🍋 フルーツ</button>
+          <button class="db-cat-btn" onclick="switchDbCat('${tab}','traditional')" data-dc="${tab}-traditional">🍱 伝統食</button>
+        </div>
+        <div class="db-grid" id="dg-${tab}"></div>
+      </div>`;
+  }
+
+  el.innerHTML = html;
+  renderPhrases(tab);
+  if (cfg.hasDB) renderDB(tab, 'seafood');
+  if (tab === 'floor2') buildWifiSection(tab);
+}
+
+// ============================================================
+// PHRASES
+// ============================================================
+function renderPhrases(tab) {
+  const list = document.getElementById('pl-' + tab);
+  if (!list) return;
+  const items = phrases[tab] || [];
+  if (!items.length) {
+    list.innerHTML = '<div style="color:var(--warm-gray);font-size:13px;padding:16px 0;text-align:center">フレーズがありません。追加してください。</div>';
+    return;
+  }
+  list.innerHTML = items.map((item, idx) => `
+    <div class="phrase-card" id="pc-${item.id}" draggable="true"
+      ondragstart="dragStart(event,'${tab}',${idx})"
+      ondragover="dragOver(event)"
+      ondrop="dragDrop(event,'${tab}',${idx})"
+      ondragend="dragEnd(event)">
+      <div class="phrase-drag">
+        <span class="drag-icon">⠿⠿⠿</span>
+        <span class="drag-order">${idx + 1} / ${items.length}</span>
+      </div>
+      <div class="phrase-main" onclick="togglePhrase(${item.id},'${tab}')">
+        <div class="phrase-jp">${escHtml(item.text)}</div>
+        <div class="phrase-arrow">›</div>
+      </div>
+      <div class="phrase-trans" id="pt-${item.id}">
+        <div class="trans-inner">
+          <div class="trans-box">
+            <div class="tb-head">
+              <div class="tb-lang-info"><span>${LANGS[guestLang].flag}</span><span>${LANGS[guestLang].name}</span></div>
+              <button class="tb-copy" onclick="copyTrans(${item.id})">コピー</button>
+            </div>
+            <span class="trans-badge live" id="tbadge-${item.id}" style="display:${item.trans?'inline-block':'none'}">${item.trans?'💾 保存済み翻訳':''}</span>
+            <div class="tb-text" id="tbt-${item.id}"></div>
+          </div>
+          <button class="show-big-btn" onclick="showBig(${item.id},'${tab}')">📱 大画面でゲストに見せる</button>
+        </div>
+      </div>
+      <div class="phrase-actions">
+        <button class="pa-btn pa-edit" onclick="openEditModal(${item.id},'${tab}')">✏️ 編集</button>
+        <button class="pa-btn pa-del" onclick="delPhrase(${item.id},'${tab}')">✕ 削除</button>
+      </div>
+    </div>`).join('');
+}
+
+// ============================================================
+// DRAG & DROP (ordering)
+// ============================================================
+let dragSrcIdx = null;
+function dragStart(e, tab, idx) {
+  dragSrcIdx = idx;
+  e.dataTransfer.setData('tab', tab);
+  e.currentTarget.classList.add('dragging');
+}
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragDrop(e, tab, idx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcIdx === null || dragSrcIdx === idx) return;
+  const arr = phrases[tab];
+  const moved = arr.splice(dragSrcIdx, 1)[0];
+  arr.splice(idx, 0, moved);
+  renderPhrases(tab);
+  saveToStorage();
+  dragSrcIdx = null;
+}
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+// ============================================================
+// TOGGLE / TRANSLATE PHRASE
+// ============================================================
+async function togglePhrase(id, tab) {
+  const card = document.getElementById('pc-' + id);
+  const wasOpen = card.classList.contains('open');
+  document.querySelectorAll(`#pl-${tab} .phrase-card.open`).forEach(c => c.classList.remove('open'));
+  if (wasOpen) return;
+  card.classList.add('open');
+  const tbt = document.getElementById('tbt-' + id);
+  if (tbt.dataset.done) return;
+  const item = (phrases[tab] || []).find(p => p.id === id);
+  if (!item) return;
+
+  // Use stored translation if available (instant, no API)
+  if (item.trans) {
+    tbt.dataset.done = '1';
+    tbt.dataset.t = item.trans;
+    tbt.dataset.jp = item.text;
+    renderTransWithLinks(tbt, item.trans);
+    updateTransBadge(id, true);
+    return;
+  }
+  // Otherwise call API
+  tbt.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  const result = await translate(item.text, guestLang);
+  tbt.dataset.done = '1';
+  tbt.dataset.t = result;
+  tbt.dataset.jp = item.text;
+  renderTransWithLinks(tbt, result);
+  updateTransBadge(id, false);
+}
+
+function updateTransBadge(id, isStored) {
+  const badge = document.getElementById('tbadge-' + id);
+  if (!badge) return;
+  badge.className = 'trans-badge ' + (isStored ? 'stored' : 'live');
+  badge.textContent = isStored ? '💾 保存済み翻訳' : '🌐 リアルタイム翻訳';
+}
+
+// Render translation text, wrapping ingredient name matches with clickable spans
+function buildKeywordMap(langOverride) {
+  const lang = langOverride || guestLang;
+  const map = [];
+  ingredients.forEach(ing => {
+    // Always include Japanese and English names
+    if (ing.name   && ing.name.length   >= 2) map.push({ word: ing.name,   id: ing.id });
+    if (ing.nameEn && ing.nameEn.length >= 2) map.push({ word: ing.nameEn, id: ing.id });
+    // Language-specific names
+    if (lang === 'zh-TW' && ing.nameZhTW && ing.nameZhTW.length >= 2) map.push({ word: ing.nameZhTW, id: ing.id });
+    if (lang === 'zh-CN' && ing.nameZhCN && ing.nameZhCN.length >= 2) map.push({ word: ing.nameZhCN, id: ing.id });
+    if (lang === 'ko'    && ing.nameKo   && ing.nameKo.length   >= 2) map.push({ word: ing.nameKo,   id: ing.id });
+  });
+  map.sort((a, b) => b.word.length - a.word.length);
+  return map;
+}
+
+function applyKeywordLinks(text, keywordMap, onClickFn) {
+  if (!text) return '';
+  let result = text;
+  const placeholders = [];
+  keywordMap.forEach(({ word, id }) => {
+    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    result = result.replace(regex, matched => {
+      const token = '\x00KW' + placeholders.length + '\x00';
+      placeholders.push({ token, html: `<span class="ing-keyword" onclick="${onClickFn}(${id})">${escHtml(matched)}</span>` });
+      return token;
+    });
+  });
+  let html = escHtml(result);
+  placeholders.forEach(({ token, html: spanHtml }) => {
+    html = html.replace(escHtml(token), spanHtml);
+  });
+  return html;
+}
+
+function renderTransWithLinks(el, text) {
+  if (!text) { el.textContent = ''; return; }
+  const keywordMap = buildKeywordMap(guestLang);
+  // Longest match first to avoid partial replacements
+  keywordMap.sort((a, b) => b.word.length - a.word.length);
+
+  // Work on plain text with placeholders to avoid double-replacing
+  let result = text;
+  const placeholders = []; // { token, html }
+  keywordMap.forEach(({ word, id }) => {
+    // Case-insensitive match; skip if already inside a placeholder
+    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    result = result.replace(regex, matched => {
+      const token = ' ING' + placeholders.length + ' ';
+      placeholders.push({
+        token,
+        html: `<span class="ing-keyword" onclick="openIngFromPhrase(${id})">${escHtml(matched)}</span>`
+      });
+      return token;
+    });
+  });
+
+  // Escape remaining HTML, then restore placeholders
+  let html = escHtml(result);
+  placeholders.forEach(({ token, html: spanHtml }) => {
+    html = html.replace(escHtml(token), spanHtml);
+  });
+  el.innerHTML = html;
+}
+
+function copyTrans(id) {
+  const el = document.getElementById('tbt-' + id);
+  if (el && el.dataset.t) navigator.clipboard.writeText(el.dataset.t).then(() => showToast('コピーしました'));
+}
+
+async function showBig(id, tab) {
+  const item = (phrases[tab] || []).find(p => p.id === id);
+  if (!item) return;
+  const jp = item.text;
+
+  // Use stored trans first (instant)
+  let trans = item.trans || null;
+  const tbt = document.getElementById('tbt-' + id);
+  if (!trans) trans = tbt && tbt.dataset.t ? tbt.dataset.t : null;
+  if (!trans) {
+    trans = await translate(jp, guestLang);
+    if (tbt) { tbt.dataset.done = '1'; tbt.dataset.t = trans; tbt.dataset.jp = jp; renderTransWithLinks(tbt, trans); }
+  }
+  gvTab = tab;
+  gvPhraseIds = (phrases[tab] || []).map(p => p.id);
+  gvCurrentIdx = gvPhraseIds.indexOf(id);
+  openGV(jp, trans, null);
+}
+
+// ============================================================
+// ADD / EDIT / DELETE PHRASES
+// ============================================================
+function toggleAdd(tab) {
+  const f = document.getElementById('af-' + tab);
+  f.classList.toggle('show');
+  if (f.classList.contains('show')) document.getElementById('nt-' + tab).focus();
+}
+function addPhrase(tab) {
+  const text = document.getElementById('nt-' + tab).value.trim();
+  if (!text) { showToast('テキストを入力してください'); return; }
+  const transEl = document.getElementById('nt-trans-' + tab);
+  const trans = transEl ? transEl.value.trim() : '';
+  const id = Date.now();
+  if (!phrases[tab]) phrases[tab] = [];
+  phrases[tab].push({ id, text, trans });
+  document.getElementById('nt-' + tab).value = '';
+  if (transEl) transEl.value = '';
+  document.getElementById('af-' + tab).classList.remove('show');
+  renderPhrases(tab);
+  saveToStorage();
+  showToast('✓ 追加しました');
+}
+
+async function translateAddField(tab) {
+  const text = document.getElementById('nt-' + tab).value.trim();
+  if (!text) { showToast('日本語テキストを先に入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const result = await translate(text, guestLang);
+  document.getElementById('nt-trans-' + tab).value = result;
+  btn.textContent = '🌐 翻訳して入力'; btn.disabled = false;
+}
+function openEditModal(id, tab) {
+  const item = (phrases[tab] || []).find(p => p.id === id);
+  if (!item) return;
+  editingPhraseId = id;
+  editingPhraseTab = tab;
+  document.getElementById('editText').value = item.text;
+  document.getElementById('editTrans').value = item.trans || '';
+  document.getElementById('editModal').classList.add('show');
+}
+
+function onEditTextChange() {
+  // Clear stored trans when JP text changes (warn user)
+  // Just clear the trans field so user knows to re-translate
+}
+
+async function translateEditField() {
+  const text = document.getElementById('editText').value.trim();
+  if (!text) { showToast('日本語テキストを入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const result = await translate(text, guestLang);
+  document.getElementById('editTrans').value = result;
+  btn.textContent = '🌐 翻訳して入力'; btn.disabled = false;
+}
+function closeEditModal() { document.getElementById('editModal').classList.remove('show'); editingPhraseId = null; editingPhraseTab = null; }
+function savePhrase() {
+  if (!editingPhraseId || !editingPhraseTab) return;
+  const item = (phrases[editingPhraseTab] || []).find(p => p.id === editingPhraseId);
+  if (item) {
+    item.text = document.getElementById('editText').value.trim();
+    item.trans = document.getElementById('editTrans').value.trim();
+    // Clear runtime cache so card re-renders correctly
+    const tbt = document.getElementById('tbt-' + editingPhraseId);
+    if (tbt) { delete tbt.dataset.done; delete tbt.dataset.t; tbt.textContent = ''; }
+    const card = document.getElementById('pc-' + editingPhraseId);
+    if (card) card.classList.remove('open');
+  }
+  closeEditModal();
+  renderPhrases(editingPhraseTab);
+  saveToStorage();
+  showToast('✓ 保存しました');
+}
+function delPhrase(id, tab) {
+  if (!confirm('削除しますか？')) return;
+  phrases[tab] = (phrases[tab] || []).filter(p => p.id !== id);
+  renderPhrases(tab);
+  saveToStorage();
+  showToast('削除しました');
+}
+document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+
+// ============================================================
+// INGREDIENT DB
+// ============================================================
+function switchDbCat(tab, cat) {
+  activeDbCat = cat;
+  document.querySelectorAll(`[data-dc^="${tab}-"]`).forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-dc="${tab}-${cat}"]`).classList.add('active');
+  renderDB(tab, cat);
+}
+
+function renderDB(tab, cat) {
+  const grid = document.getElementById('dg-' + tab);
+  if (!grid) return;
+  const items = ingredients.filter(i => i.cat === cat);
+  grid.innerHTML = items.map(ing => {
+    const imgHtml = ing.img
+      ? `<img class="db-img" src="${ing.img}" alt="${ing.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        + `<div class="db-img-placeholder" style="display:none">${ing.emoji || '🌿'}</div>`
+      : `<div class="db-img-placeholder">${ing.emoji || '🌿'}</div>`;
+    return `<div class="db-card" onclick="openIng(${ing.id})">
+      ${imgHtml}
+      <div class="db-name">${ing.nameEn}</div>
+      <div class="db-name-ja">${ing.name}</div>
+    </div>`;
+  }).join('') + `<div class="db-add-btn" onclick="openAddIng('${cat}')"><span class="add-icon">＋</span><span>食材を追加</span></div>`;
+}
+
+// ============================================================
+// INGREDIENT MODAL (VIEW)
+// ============================================================
+const ING_LANGS = [
+  {code:'ja', label:'🇯🇵 日本語'},
+  {code:'en', label:'🇬🇧 English'},
+  {code:'zh-TW', label:'🇹🇼 繁體'},
+  {code:'zh-CN', label:'🇨🇳 简体'},
+  {code:'ko', label:'🇰🇷 한국어'},
+];
+
+function openIng(id) {
+  selectedIngId = id;
+  const ing = ingredients.find(i => i.id === id);
+  if (!ing) return;
+  currentIngLang = 'ja';
+  document.getElementById('ingEditMode').classList.remove('show');
+  document.getElementById('ingViewMode').style.display = 'block';
+  document.getElementById('ingModalTitle').textContent = `${ing.emoji || ''} ${ing.name} / ${ing.nameEn}`;
+  // image
+  const wrap = document.getElementById('ingModalImgWrap');
+  if (ing.img) {
+    wrap.innerHTML = `<img src="${ing.img}" style="width:100%;height:240px;object-fit:cover;border-radius:10px;margin-bottom:14px" onerror="this.outerHTML='<div class=ing-modal-img>${ing.emoji || '🌿'}</div>'">`;
+  } else {
+    wrap.innerHTML = `<div class="ing-modal-img">${ing.emoji || '🌿'}</div>`;
+  }
+  // lang tabs
+  document.getElementById('ingLangTabs').innerHTML = ING_LANGS.map(l =>
+    `<button class="ing-lang-tab${l.code === 'ja' ? ' active' : ''}" onclick="switchIngLang('${l.code}')" data-il="${l.code}">${l.label}</button>`
+  ).join('');
+  showIngDesc('ja');
+  document.getElementById('ingModal').classList.add('show');
+}
+
+function switchIngLang(code) {
+  currentIngLang = code;
+  document.querySelectorAll('[data-il]').forEach(b => b.classList.toggle('active', b.getAttribute('data-il') === code));
+  showIngDesc(code);
+}
+
+function showIngDesc(code) {
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  if (!ing) return;
+  const desc = ing[code] || '';
+  document.getElementById('ingDescBox').textContent = desc || '（説明未登録）';
+}
+
+function closeIngModal() {
+  document.getElementById('ingModal').classList.remove('show');
+  selectedIngId = null;
+}
+document.getElementById('ingModal').addEventListener('click', function(e) { if (e.target === this) closeIngModal(); });
+
+// ============================================================
+// INGREDIENT MODAL (EDIT)
+// ============================================================
+function toggleIngEdit() {
+  const editMode = document.getElementById('ingEditMode');
+  const viewMode = document.getElementById('ingViewMode');
+  const isEdit = editMode.classList.contains('show');
+  if (isEdit) {
+    editMode.classList.remove('show');
+    viewMode.style.display = 'block';
+    clearPhotoInputs('ingEdit');
+  } else {
+    const ing = ingredients.find(i => i.id === selectedIngId);
+    if (!ing) return;
+    document.getElementById('ingEditImg').value = ing.img || '';
+    document.getElementById('ingEditImg').style.display = ing.img ? 'block' : 'none';
+    if (ing.img) showPhotoPreview('ingEdit', ing.img); else clearPhotoInputs('ingEdit');
+    document.getElementById('ingEditEmoji').value = ing.emoji || '';
+    document.getElementById('ingEditName').value = ing.name || '';
+    document.getElementById('ingEditNameEn').value = ing.nameEn || '';
+    document.getElementById('ingEditNameZhTW').value = ing.nameZhTW || '';
+    document.getElementById('ingEditNameZhCN').value = ing.nameZhCN || '';
+    document.getElementById('ingEditNameKo').value = ing.nameKo || '';
+    document.getElementById('ingEditCat').value = ing.cat || 'seafood';
+    document.getElementById('ingEditJa').value = ing.ja || '';
+    document.getElementById('ingEditEn').value = ing.en || '';
+    document.getElementById('ingEditZhTW').value = ing['zh-TW'] || '';
+    document.getElementById('ingEditZhCN').value = ing['zh-CN'] || '';
+    document.getElementById('ingEditKo').value = ing.ko || '';
+    viewMode.style.display = 'none';
+    editMode.classList.add('show');
+  }
+}
+
+function saveIng() {
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  if (!ing) return;
+  ing.img = document.getElementById('ingEditImg').value.trim();
+  ing.emoji = document.getElementById('ingEditEmoji').value.trim();
+  ing.name = document.getElementById('ingEditName').value.trim();
+  ing.nameEn = document.getElementById('ingEditNameEn').value.trim();
+  ing.nameZhTW = document.getElementById('ingEditNameZhTW').value.trim();
+  ing.nameZhCN = document.getElementById('ingEditNameZhCN').value.trim();
+  ing.nameKo = document.getElementById('ingEditNameKo').value.trim();
+  ing.cat = document.getElementById('ingEditCat').value;
+  ing.ja = document.getElementById('ingEditJa').value.trim();
+  ing.en = document.getElementById('ingEditEn').value.trim();
+  ing['zh-TW'] = document.getElementById('ingEditZhTW').value.trim();
+  ing['zh-CN'] = document.getElementById('ingEditZhCN').value.trim();
+  ing.ko = document.getElementById('ingEditKo').value.trim();
+  toggleIngEdit();
+  // refresh desc
+  document.getElementById('ingModalTitle').textContent = `${ing.emoji || ''} ${ing.name} / ${ing.nameEn}`;
+  const wrap = document.getElementById('ingModalImgWrap');
+  if (ing.img) {
+    wrap.innerHTML = `<img src="${ing.img}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px" onerror="this.outerHTML='<div class=ing-modal-img>${ing.emoji||'🌿'}</div>'">`;
+  } else {
+    wrap.innerHTML = `<div class="ing-modal-img">${ing.emoji || '🌿'}</div>`;
+  }
+  showIngDesc(currentIngLang);
+  ['dinner','breakfast'].forEach(t => { const g = document.getElementById('dg-'+t); if(g) renderDB(t, activeDbCat); });
+  saveToStorage();
+  showToast('✓ 保存しました');
+}
+
+function deleteIng() {
+  if (!confirm('この食材を削除しますか？')) return;
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  const cat = ing ? ing.cat : activeDbCat;
+  ingredients = ingredients.filter(i => i.id !== selectedIngId);
+  closeIngModal();
+  ['dinner','breakfast'].forEach(t => { const g = document.getElementById('dg-'+t); if(g) renderDB(t, cat); });
+  saveToStorage();
+  showToast('削除しました');
+}
+
+function showIngGuest() {
+  const ing = ingredients.find(i => i.id === selectedIngId);
+  if (!ing) return;
+  const langKey = guestLang === 'zh-TW' ? 'zh-TW' : guestLang === 'zh-CN' ? 'zh-CN' : guestLang === 'ko' ? 'ko' : 'en';
+  const desc = ing[langKey] || ing.en || ing.ja || '';
+  const jaDesc = ing.ja || '';
+  const imgHtml = ing.img
+    ? `<img class="gv-ing-img" src="${ing.img}" alt="${ing.name}">`
+    : `<div class="gv-ing-img-placeholder">${ing.emoji || '🌿'}</div>`;
+  document.getElementById('gvBody').innerHTML = `
+    ${imgHtml}
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;color:var(--sand);font-family:'Cormorant Garamond',serif;font-weight:300;letter-spacing:2px">${ing.nameEn}</div>
+      <div style="font-size:16px;color:rgba(232,220,200,0.6);margin-top:4px">${ing.name}</div>
+    </div>
+    <div class="gv-main-box"><div class="gv-text">${escHtml(desc)}</div></div>
+    <div class="gv-jp-box"><span class="gv-jp-lbl">日本語</span><div class="gv-jp-text">${escHtml(jaDesc)}</div></div>`;
+  closeIngModal();
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+  document.getElementById('guestView').style.display = 'block';
+}
+
+// ============================================================
+// ADD NEW INGREDIENT
+// ============================================================
+function openAddIng(cat) {
+  document.getElementById('aIngCat').value = cat;
+  ['Emoji','Name','NameEn','NameZhTW','NameZhCN','NameKo','Ja','En','ZhTW','ZhCN','Ko'].forEach(f => {
+    const el = document.getElementById('aIng' + f);
+    if (el) el.value = '';
+  });
+  clearPhotoInputs('aIng');
+  document.getElementById('addIngModal').classList.add('show');
+}
+function closeAddIng() { document.getElementById('addIngModal').classList.remove('show'); clearPhotoInputs('aIng'); }
+function saveNewIng() {
+  const name = document.getElementById('aIngName').value.trim();
+  if (!name) { showToast('名前を入力してください'); return; }
+  const cat = document.getElementById('aIngCat').value;
+  const newIng = {
+    id: Date.now(),
+    cat,
+    img: document.getElementById('aIngImg').value.trim(),
+    emoji: document.getElementById('aIngEmoji').value.trim() || '🌿',
+    name,
+    nameEn: document.getElementById('aIngNameEn').value.trim(),
+    nameZhTW: document.getElementById('aIngNameZhTW').value.trim(),
+    nameZhCN: document.getElementById('aIngNameZhCN').value.trim(),
+    nameKo: document.getElementById('aIngNameKo').value.trim(),
+    ja: document.getElementById('aIngJa').value.trim(),
+    en: document.getElementById('aIngEn').value.trim(),
+    'zh-TW': document.getElementById('aIngZhTW').value.trim(),
+    'zh-CN': document.getElementById('aIngZhCN').value.trim(),
+    ko: document.getElementById('aIngKo').value.trim(),
+  };
+  ingredients.push(newIng);
+  closeAddIng();
+  ['dinner','breakfast'].forEach(t => { const g = document.getElementById('dg-'+t); if(g) renderDB(t, cat); });
+  saveToStorage();
+  showToast('✓ 食材を追加しました');
+}
+document.getElementById('addIngModal').addEventListener('click', function(e) { if (e.target === this) closeAddIng(); });
+
+// ============================================================
+// GUEST VIEW
+// ============================================================
+function openGV(jp, trans, imgHtml, showNav) {
+  const gvBody = document.getElementById('gvBody');
+  gvBody.innerHTML = `
+    ${imgHtml || ''}
+    <span class="gv-flag">${LANGS[guestLang].flag}</span>
+    <div class="gv-main-box"><div class="gv-text" id="gvMainText"></div></div>
+    <div class="gv-jp-box"><span class="gv-jp-lbl">JAPANESE / 日本語</span><div class="gv-jp-text">${escHtml(jp)}</div></div>`;
+  // Render with ingredient keyword links
+  const gvMainText = document.getElementById('gvMainText');
+  if (gvMainText) renderGVTransWithLinks(gvMainText, trans);
+  document.getElementById('guestView').style.display = 'block';
+  // Nav bar
+  const nav = document.getElementById('gvNav');
+  const hint = document.getElementById('gvHint');
+  if (showNav !== false && gvPhraseIds && gvPhraseIds.length > 1) {
+    nav.style.display = 'flex';
+    hint.style.display = 'block';
+    document.getElementById('gvCounter').textContent = (gvCurrentIdx + 1) + ' / ' + gvPhraseIds.length;
+    document.getElementById('gvPrev').disabled = gvCurrentIdx <= 0;
+    document.getElementById('gvNext').disabled = gvCurrentIdx >= gvPhraseIds.length - 1;
+  } else {
+    nav.style.display = 'none';
+    hint.style.display = 'none';
+  }
+}
+function closeGV() {
+  document.getElementById('guestView').style.display = 'none';
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+}
+
+// Navigate to prev/next phrase in guest view
+async function gvNavigate(dir) {
+  const newIdx = gvCurrentIdx + dir;
+  if (!gvPhraseIds || newIdx < 0 || newIdx >= gvPhraseIds.length) return;
+  gvCurrentIdx = newIdx;
+  const id = gvPhraseIds[gvCurrentIdx];
+  const item = (phrases[gvTab] || []).find(p => p.id === id);
+  if (!item) return;
+  // Animate slide
+  const body = document.getElementById('gvBody');
+  body.style.transition = 'opacity 0.15s';
+  body.style.opacity = '0';
+  await new Promise(r => setTimeout(r, 150));
+  // Get/cache translation — stored trans first (instant)
+  let trans = item.trans || null;
+  const tbt = document.getElementById('tbt-' + id);
+  if (!trans) trans = tbt && tbt.dataset.t ? tbt.dataset.t : null;
+  if (!trans) {
+    trans = await translate(item.text, guestLang);
+    if (tbt) { tbt.dataset.done = '1'; tbt.dataset.t = trans; tbt.dataset.jp = item.text; renderTransWithLinks(tbt, trans); }
+  }
+  openGV(item.text, trans, null);
+  body.style.opacity = '0';
+  requestAnimationFrame(() => { body.style.transition = 'opacity 0.2s'; body.style.opacity = '1'; });
+}
+
+// ============================================================
+// FREE TRANSLATION
+// ============================================================
+function ftCC() { document.getElementById('ftCC').textContent = document.getElementById('ftInput').value.length + '文字'; }
+function clearFT() { document.getElementById('ftInput').value = ''; document.getElementById('ftResult').style.display = 'none'; ftCC(); }
+async function doFT() {
+  const text = document.getElementById('ftInput').value.trim();
+  if (!text) { showToast('テキストを入力してください'); return; }
+  lastFTjp = text;
+  document.getElementById('ftResult').style.display = 'block';
+  document.getElementById('ftResLang').innerHTML = `<span>${LANGS[guestLang].flag}</span><span>${LANGS[guestLang].name}</span>`;
+  document.getElementById('ftResText').innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  document.getElementById('ftResJP').textContent = '';
+  const result = await translate(text, guestLang);
+  lastFTtrans = result;
+  document.getElementById('ftResText').textContent = result;
+  document.getElementById('ftResJP').innerHTML = `<span style="font-size:10px;letter-spacing:2px;opacity:0.6;display:block;margin-bottom:3px">JAPANESE</span>${escHtml(text)}`;
+}
+function showFTGuest() {
+  if (!lastFTtrans) { showToast('先に翻訳してください'); return; }
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+  openGV(lastFTjp, lastFTtrans, null, false);
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+async function translateWelcome() {
+  const el = document.getElementById('welcomeTrans');
+  el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  const t = await translate('WASSA WASSAへようこそ！なんでもどうぞ。', guestLang);
+  el.textContent = t;
+  document.getElementById('welcomeTime').textContent = getTime();
+}
+function updateChatLangBtns() {
+  document.querySelectorAll('.clang-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-cl') === guestLang));
+}
+function switchCL(lang) {
+  guestLang = lang;
+  document.getElementById('hdFlag').textContent = LANGS[lang].flag;
+  document.getElementById('hdName').textContent = LANGS[lang].name;
+  document.getElementById('ftLangSpan').textContent = LANGS[lang].name;
+  document.getElementById('rbGuest').textContent = `👤 ${LANGS[lang].flag} ゲスト`;
+  updateChatLangBtns();
+  // Reset phrase caches (stored trans.lang may differ)
+  document.querySelectorAll('[id^="tbt-"]').forEach(el => { delete el.dataset.done; delete el.dataset.t; el.innerHTML = ''; });
+  document.querySelectorAll('[id^="tbadge-"]').forEach(el => { el.style.display='none'; });
+  document.querySelectorAll('.phrase-card.open').forEach(c => c.classList.remove('open'));
+}
+function setRole(role) {
+  chatRole = role;
+  document.getElementById('rbStaff').classList.toggle('active', role === 'staff');
+  document.getElementById('rbGuest').classList.toggle('active', role === 'guest');
+  document.getElementById('ciInput').placeholder = role === 'staff' ? '日本語でメッセージ...' : `${LANGS[guestLang].name}でメッセージ...`;
+}
+async function sendChat() {
+  const input = document.getElementById('ciInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; autoResize(input);
+  appendBubble(text, chatRole);
+  if (chatRole === 'staff') {
+    const t = await translate(text, guestLang);
+    setLastTrans(t, 'staff');
+  } else {
+    const t = await translateFrom(text, guestLang);
+    setLastTrans(`（日本語：${t}）`, 'guest');
+  }
+}
+function appendBubble(text, role) {
+  const c = document.getElementById('chatMsgs');
+  const d = document.createElement('div');
+  d.className = `cmsg ${role}`;
+  const lbl = role === 'staff' ? '↓ ゲスト言語翻訳' : '↓ 日本語訳';
+  d.innerHTML = `<div class="cavatar">${role === 'staff' ? '👩‍💼' : '👤'}</div>
+    <div class="cbwrap">
+      <div class="cbubble">${escHtml(text)}
+        <div class="cborig">${lbl}</div>
+        <div class="cbtrans"><div class="dots"><span></span><span></span><span></span></div></div>
+      </div>
+      <div class="ctime">${getTime()}</div>
+    </div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function setLastTrans(text, role) {
+  const all = document.querySelectorAll(`#chatMsgs .cmsg.${role} .cbtrans`);
+  if (all.length) all[all.length - 1].textContent = text;
+}
+function clearChat() { if (!confirm('履歴をクリアしますか？')) return; document.getElementById('chatMsgs').innerHTML = ''; showToast('クリアしました'); }
+function ciKD(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }
+
+
+// ============================================================
+// PHOTO UPLOAD
+// ============================================================
+function onPhotoFile(prefix, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    document.getElementById(prefix + 'Img').value = dataUrl;
+    showPhotoPreview(prefix, dataUrl);
+  };
+  reader.readAsDataURL(file);
+}
+function togglePhotoUrl(prefix) {
+  const inp = document.getElementById(prefix + 'Img');
+  inp.style.display = inp.style.display === 'none' ? 'block' : 'none';
+  if (inp.style.display === 'block') inp.focus();
+}
+function onPhotoUrl(prefix, inp) {
+  if (inp.value.startsWith('http')) showPhotoPreview(prefix, inp.value);
+}
+function showPhotoPreview(prefix, src) {
+  const wrap = document.getElementById(prefix + 'PreviewWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!src) return;
+  const img = document.createElement('img');
+  img.className = 'photo-preview-img';
+  img.src = src;
+  img.onerror = function() {
+    wrap.innerHTML = '<div style="color:var(--warm-gray);font-size:12px;padding:6px">画像を読み込めませんでした</div>';
+  };
+  wrap.appendChild(img);
+}
+function clearPhotoInputs(prefix) {
+  const inp = document.getElementById(prefix + 'Img');
+  if (inp) { inp.value = ''; inp.style.display = 'none'; }
+  const file = document.getElementById(prefix + 'File');
+  if (file) file.value = '';
+  const wrap = document.getElementById(prefix + 'PreviewWrap');
+  if (wrap) wrap.innerHTML = '';
+}
+
+
+// ============================================================
+// INGREDIENT KEYWORD LINKING
+// ============================================================
+
+// Render translated text in guestView with ingredient keyword links
+function renderGVTransWithLinks(el, text) {
+  if (!text) { el.textContent = ''; return; }
+  const keywordMap = [];
+  ingredients.forEach(ing => {
+    if (ing.nameEn && ing.nameEn.length >= 2) keywordMap.push({ word: ing.nameEn, id: ing.id });
+    if (ing.name   && ing.name.length   >= 2) keywordMap.push({ word: ing.name,   id: ing.id });
+  });
+  keywordMap.sort((a, b) => b.word.length - a.word.length);
+
+  let result = text;
+  const placeholders = [];
+  keywordMap.forEach(({ word, id }) => {
+    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    result = result.replace(regex, matched => {
+      const token = ' GV' + placeholders.length + ' ';
+      placeholders.push({
+        token,
+        html: `<span class="ing-keyword" style="font-size:inherit;color:#a8d5a2;border-bottom-color:#a8d5a2;background:rgba(168,213,162,0.15)" onclick="openIngFromGV(${id})">${escHtml(matched)}</span>`
+      });
+      return token;
+    });
+  });
+
+  let html = escHtml(result);
+  placeholders.forEach(({ token, html: spanHtml }) => {
+    html = html.replace(escHtml(token), spanHtml);
+  });
+  el.innerHTML = html;
+}
+
+// Open ingredient from phrase card (closes phrase, opens ing modal)
+function openIngFromPhrase(id) {
+  // Close any open phrase cards
+  document.querySelectorAll('.phrase-card.open').forEach(c => c.classList.remove('open'));
+  openIng(id);
+}
+
+// Open ingredient from guest view (close GV first, then open ing modal)
+function openIngFromGV(id) {
+  closeGV();
+  // Small delay to let GV close
+  setTimeout(() => openIng(id), 200);
+}
+
+// ============================================================
+// BULK TRANSLATE INGREDIENT DESCRIPTIONS
+// ============================================================
+async function translateAllIngDesc() {
+  const jaText = document.getElementById('ingEditJa').value.trim();
+  if (!jaText) { showToast('日本語説明を入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const langs = [
+    { code: 'en',    el: 'ingEditEn' },
+    { code: 'zh-TW', el: 'ingEditZhTW' },
+    { code: 'zh-CN', el: 'ingEditZhCN' },
+    { code: 'ko',    el: 'ingEditKo' },
+  ];
+  for (const l of langs) {
+    const result = await translate(jaText, l.code);
+    document.getElementById(l.el).value = result;
+  }
+  btn.textContent = '🌐 全言語に翻訳'; btn.disabled = false;
+  showToast('✓ 4言語に翻訳しました');
+}
+
+async function translateAllNewIngDesc() {
+  const jaText = document.getElementById('aIngJa').value.trim();
+  if (!jaText) { showToast('日本語説明を入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const langs = [
+    { code: 'en',    el: 'aIngEn' },
+    { code: 'zh-TW', el: 'aIngZhTW' },
+    { code: 'zh-CN', el: 'aIngZhCN' },
+    { code: 'ko',    el: 'aIngKo' },
+  ];
+  for (const l of langs) {
+    const result = await translate(jaText, l.code);
+    document.getElementById(l.el).value = result;
+  }
+  btn.textContent = '🌐 全言語に翻訳'; btn.disabled = false;
+  showToast('✓ 4言語に翻訳しました');
+}
+
+
+// ============================================================
+// AREA SPOTS DATA & FUNCTIONS
+// ============================================================
+let areaSpots = [
+  {id:2000,cat:"other",name:"\u6d77\u3068\u661f\u7a7a\u306e\u5c0f\u3055\u306a\u5bbf WASSA WASSA",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6941131,128.1118964&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2001,cat:"food",name:"\u7b11\u5473\u306e\u5e97",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7027106,128.1235748&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2002,cat:"food",name:"\u3084\u3093\u3070\u308b\u5869\u5c4b\u6e7e\u307e\u3041\u3050\u3059\u304f\u3084\u30fc",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6723168,128.108774&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2003,cat:"nature",name:"Hentona Sabani \u30d8\u30f3\u30c8\u30ca\u30b5\u30d0\u30cb",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6676933,128.1038294&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2004,cat:"shop",name:"\u5927\u5b9c\u5473\u30b7\u30fc\u30af\u30ee\u30fc\u30b5\u30fc\u30d1\u30fc\u30af",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6483813,128.0884179&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2005,cat:"nature",name:"AGES BASE(\u30a2\u30b2\u30ba\u30d9\u30fc\u30b9)\u5927\u5b9c\u5473",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6478486,128.1256267&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2006,cat:"nature",name:"\u30bf\u30fc\u6edd\u99d0\u8eca\u5834",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6369559,128.0933275&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2007,cat:"nature",name:"\u304d\u3086\u306a\u7267\u5834",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6359606,128.0852056&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2008,cat:"food",name:"\u524d\u7530\u98df\u5802",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6533061,128.0915731&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2009,cat:"shop",name:"\u9053\u306e\u99c5 \u304a\u304a\u304e\u307f \u3084\u3093\u3070\u308b\u306e\u68ee\u30d3\u30b8\u30bf\u30fc\u30bb\u30f3\u30bf\u30fc",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6607632,128.1023163&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2010,cat:"shop",name:"\u30d5\u30a1\u30df\u30ea\u30fc\u30de\u30fc\u30c8 \u5927\u5b9c\u5473\u6d25\u6ce2\u5e97",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6607333,128.1011138&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2011,cat:"shop",name:"\u7530\u6751\u7aaf",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.660583,128.104151&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2012,cat:"shop",name:"\u30ed\u30fc\u30bd\u30f3 \u5927\u5b9c\u5473\u5869\u5c4b\u5e97",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6777322,128.101899&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2013,cat:"food",name:"\u304c\u3058\u307e\u3093\u308d\u30fc",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6880747,128.1283331&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2014,cat:"nature",name:"\u5275\u9020\u306e\u68ee\u5165\u53e3",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6829443,128.1202889&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2015,cat:"nature",name:"\u5927\u5b9c\u5473\u6751\u306e\u732a\u57a3",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6712765,128.1266844&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2016,cat:"nature",name:"\u516d\u7530\u539f\u5c55\u671b\u53f0",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6713,128.1255411&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2017,cat:"activity",name:"\u5927\u5b9c\u5473\u6751\u7acb \u82ad\u8549\u5e03\u4f1a\u9928",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7056086,128.1440974&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2018,cat:"nature",name:"\u30aa\u30af\u30e9\u30ec\u30eb\u30ab\u7551",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7068927,128.1490923&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2019,cat:"shop",name:"\u5c71\u539f\u5de5\u85dd\u5e97(\u65e7\u559c\u5982\u5609\u5c0f\u5b66\u6821\u5185)",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7070297,128.1532833&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2020,cat:"food",name:"OKINAWA CACAO",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7113633,128.1627697&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2021,cat:"shop",name:"Gallery TATI",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7115847,128.1685776&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2022,cat:"food",name:"\u56fd\u982d\u6e2f\u98df\u5802",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7212283,128.1584519&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2023,cat:"food",name:"\u6d5c\u98a8",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7221217,128.1597803&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2024,cat:"activity",name:"BUNA SAUNA",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7064944,128.1528242&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2025,cat:"food",name:"OkuMasa",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7369573,128.1727384&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2026,cat:"shop",name:"\u56fd\u982d\u6f01\u696d\u5354\u540c\u7d44\u5408",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7481439,128.1773897&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2027,cat:"nature",name:"\u56fd\u982d\u6751\u68ee\u6797\u516c\u5712\u301c\u661f\u3068\u68ee\u306e\u30ad\u30e3\u30f3\u30d7\u5834\u301c",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7330586,128.1907511&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2028,cat:"nature",name:"\u4e0e\u90a3\u8987\u5cb3\u767b\u5c71\u53e3",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7319177,128.2091239&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2029,cat:"food",name:"Bookcafe Okinawa Rail",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7268965,128.208632&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2030,cat:"activity",name:"\u3084\u3093\u3070\u308b\u91ce\u751f\u751f\u7269\u4fdd\u8b77\u30bb\u30f3\u30bf\u30fc\u30a6\u30d5\u30ae\u30fc\u81ea\u7136\u9928",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7283032,128.1790501&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2031,cat:"activity",name:"\u30a2\u30b9\u30e0\u30a4\u30cf\u30a4\u30af\u30b9",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.8614017,128.2545689&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2032,cat:"nature",name:"\u8fba\u6238\u5cac",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.8725309,128.2644754&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2033,cat:"nature",name:"\u8305\u6253\u30d0\u30f3\u30bf",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.8543215,128.249777&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2034,cat:"activity",name:"\u30e4\u30f3\u30d0\u30eb\u30af\u30a4\u30ca\u751f\u614b\u5c55\u793a\u5b66\u7fd2\u65bd\u8a2d",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.741068,128.2959635&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2035,cat:"nature",name:"\u3084\u3093\u3070\u308b\u5b66\u3073\u306e\u68ee \u30a2\u30b9\u30ec\u30c1\u30c3\u30af\u5e83\u5834",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.7137356,128.2693167&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2036,cat:"activity",name:"\u30b8\u30e3\u30f3\u30b0\u30ea\u30a2\u6c96\u7e04",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6422201,127.9735982&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2037,cat:"activity",name:"\u6c96\u7e04\u7f8e\u3089\u6d77\u6c34\u65cf\u9928",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.694338,127.8780131&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""},
+  {id:2038,cat:"activity",name:"\u6771\u6751\u6751\u6c11\u306e\u68ee",nameEn:"",nameZhTW:"",nameZhCN:"",nameKo:"",mapUrl:"https://maps.google.com/maps?q=26.6373473,128.1561482&z=16&output=embed",ja:"",en:"",'zh-TW':"",'zh-CN':"",ko:""}
+];
+let editingAreaId = null;
+let activeAreaCat = 'all';
+const AREA_CATS = {
+  all:      { label:'すべて', icon:'🗺' },
+  food:     { label:'食事・カフェ', icon:'🍽' },
+  nature:   { label:'自然・景色', icon:'🌊' },
+  shop:     { label:'ショップ', icon:'🛍' },
+  activity: { label:'アクティビティ', icon:'🤿' },
+  other:    { label:'その他', icon:'📍' },
+};
+
+function buildAreaPanel() {
+  const el = document.getElementById('tp-area');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="sec-title">🗺 周辺情報</div>
+    <div class="sec-sub">スポットをタップして地図を表示 / ゲストに見せる</div>
+    <div class="area-cat-nav" id="areaCatNav"></div>
+    <div id="areaList"></div>
+    <div class="area-add-card" onclick="openAreaModal(null)">
+      <span style="font-size:22px">＋</span><span>スポットを追加</span>
+    </div>`;
+  renderAreaCatNav();
+  renderAreaList();
+}
+
+function renderAreaCatNav() {
+  const nav = document.getElementById('areaCatNav');
+  if (!nav) return;
+  nav.innerHTML = Object.entries(AREA_CATS).map(([k, v]) =>
+    `<button class="area-cat-btn${activeAreaCat===k?' active':''}" onclick="switchAreaCat('${k}')">${v.icon} ${v.label}</button>`
+  ).join('');
+}
+
+function switchAreaCat(cat) {
+  activeAreaCat = cat;
+  renderAreaCatNav();
+  renderAreaList();
+}
+
+function renderAreaList() {
+  const list = document.getElementById('areaList');
+  if (!list) return;
+  const filtered = activeAreaCat === 'all' ? areaSpots : areaSpots.filter(s => s.cat === activeAreaCat);
+  if (!filtered.length) {
+    list.innerHTML = '<div style="color:var(--warm-gray);font-size:13px;padding:20px 0;text-align:center">このカテゴリにはスポットがありません</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(spot => {
+    const catInfo = AREA_CATS[spot.cat] || AREA_CATS.other;
+    const embedUrl = toEmbedUrl(spot.mapUrl);
+    return `<div class="area-card" id="areacard-${spot.id}">
+      <div class="area-card-head" onclick="toggleAreaCard(${spot.id})">
+        <div>
+          <div class="area-card-name">${escHtml(spot.name)}</div>
+          <div class="area-card-cat">${catInfo.icon} ${catInfo.label}</div>
+        </div>
+        <span class="area-card-arrow">›</span>
+      </div>
+      <div class="area-card-body">
+        <div class="area-card-inner">
+          ${embedUrl ? `<div class="area-map-wrap"><iframe src="${embedUrl}" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>` : '<div style="color:var(--warm-gray);font-size:12px;padding:8px 0">地図URLが未設定です</div>'}
+          <div class="area-desc">${escHtml(spot.ja)}</div>
+          <div class="area-btns">
+            ${embedUrl ? `<button class="area-open-btn" onclick="openMapExternal(${spot.id})">🗺 Google Mapsで開く</button>` : ''}
+            <button class="area-show-btn" onclick="showAreaGuest(${spot.id})">📱 ゲストに見せる</button>
+            <button class="area-edit-btn" onclick="openAreaModal(${spot.id})">✏️ 編集</button>
+            <button class="area-edit-btn" style="color:var(--danger);border-color:rgba(184,104,64,0.2)" onclick="deleteArea(${spot.id})">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAreaCard(id) {
+  const card = document.getElementById('areacard-' + id);
+  if (!card) return;
+  const wasOpen = card.classList.contains('open');
+  document.querySelectorAll('.area-card.open').forEach(c => c.classList.remove('open'));
+  if (!wasOpen) card.classList.add('open');
+}
+
+// Convert share URL to embed URL if needed
+function toEmbedUrl(url) {
+  if (!url) return '';
+  if (url.includes('/maps/embed')) return url; // already embed
+  // Convert share URL like https://maps.google.com/?q=... or https://goo.gl/maps/...
+  // Best effort: return as-is and let iframe try
+  if (url.includes('google.com/maps') || url.includes('goo.gl')) {
+    // Try to make an embed URL from a place URL
+    if (url.includes('place/')) {
+      return url.replace('/place/', '/embed/v1/place?key=&q=').replace('https://www.google.com/maps/', 'https://www.google.com/maps/embed/v1/');
+    }
+    return url; // fallback
+  }
+  return url;
+}
+
+function openMapExternal(id) {
+  const spot = areaSpots.find(s => s.id === id);
+  if (!spot || !spot.mapUrl) return;
+  // Convert embed URL to regular maps URL for external open
+  let url = spot.mapUrl;
+  if (url.includes('/maps/embed')) {
+    // Extract q param if present
+    const m = url.match(/[?&]q=([^&]+)/);
+    if (m) url = 'https://www.google.com/maps/search/' + m[1];
+    else url = 'https://maps.google.com';
+  }
+  window.open(url, '_blank');
+}
+
+function showAreaGuest(id) {
+  const spot = areaSpots.find(s => s.id === id);
+  if (!spot) return;
+
+  const langKey = guestLang === 'zh-TW' ? 'zh-TW' : guestLang === 'zh-CN' ? 'zh-CN' : guestLang === 'ko' ? 'ko' : 'en';
+
+  // Description in guest language
+  const desc = spot[langKey] || spot.en || spot.ja || '';
+
+  // Spot name: use language-specific if registered, else Japanese
+  const nameKey = { en:'nameEn', 'zh-TW':'nameZhTW', 'zh-CN':'nameZhCN', ko:'nameKo' }[guestLang];
+  const displayName = (nameKey && spot[nameKey]) ? spot[nameKey] : spot.name;
+
+  // Category label in guest language
+  const CAT_I18N = {
+    food:     { en:'Dining / Café', 'zh-TW':'餐廳・咖啡廳', 'zh-CN':'餐厅・咖啡厅', ko:'식사・카페' },
+    nature:   { en:'Nature / Scenery', 'zh-TW':'自然・景色', 'zh-CN':'自然・景色', ko:'자연・경치' },
+    shop:     { en:'Shopping', 'zh-TW':'購物', 'zh-CN':'购物', ko:'쇼핑' },
+    activity: { en:'Activities', 'zh-TW':'活動體驗', 'zh-CN':'活动体验', ko:'액티비티' },
+    other:    { en:'Nearby Spot', 'zh-TW':'周邊景點', 'zh-CN':'周边景点', ko:'주변 정보' },
+  };
+  const catInfo = AREA_CATS[spot.cat] || AREA_CATS.other;
+  const catLabel = (CAT_I18N[spot.cat] && CAT_I18N[spot.cat][langKey]) || catInfo.label;
+
+  // Google Maps embed — add hl= for UI language
+  const HL_MAP = { en:'en', 'zh-TW':'zh-TW', 'zh-CN':'zh-CN', ko:'ko' };
+  const hl = HL_MAP[guestLang] || 'en';
+  let embedUrl = toEmbedUrl(spot.mapUrl);
+  if (embedUrl) {
+    // Append or replace hl param
+    embedUrl = embedUrl.includes('hl=')
+      ? embedUrl.replace(/hl=[^&]+/, 'hl=' + hl)
+      : embedUrl + (embedUrl.includes('?') ? '&' : '?') + 'hl=' + hl;
+  }
+
+  // External maps link
+  const mapsLink = spot.mapUrl && !spot.mapUrl.includes('/maps/embed') ? spot.mapUrl : '';
+
+  // All UI strings in guest language
+  const UI = {
+    en:      { open:'Open in Google Maps', flag:'🇬🇧' },
+    'zh-TW': { open:'在 Google 地圖中開啟', flag:'🇹🇼' },
+    'zh-CN': { open:'在 Google 地图中打开', flag:'🇨🇳' },
+    ko:      { open:'Google 지도에서 열기', flag:'🇰🇷' },
+  };
+  const ui = UI[guestLang] || UI.en;
+
+  gvTab = null; gvPhraseIds = null; gvCurrentIdx = -1;
+  document.getElementById('gvBody').innerHTML = `
+    <div class="gv-area-name">${escHtml(displayName)}</div>
+    <div class="gv-area-cat">${catInfo.icon} ${escHtml(catLabel)}</div>
+    ${embedUrl ? `<div class="gv-area-map"><iframe src="${embedUrl}" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>` : ''}
+    <div class="gv-area-desc">${escHtml(desc)}</div>
+    ${mapsLink ? `<div class="gv-area-maplink"><a href="${mapsLink}" target="_blank">🗺 ${escHtml(ui.open)}</a></div>` : ''}`;
+  document.getElementById('guestView').style.display = 'block';
+}
+
+// AREA MODAL
+function openAreaModal(id) {
+  editingAreaId = id;
+  const spot = id ? areaSpots.find(s => s.id === id) : null;
+  document.getElementById('areaModalTitle').textContent = spot ? '✏️ スポット編集' : '🗺 スポット追加';
+  document.getElementById('areaName').value     = spot ? spot.name   : '';
+  document.getElementById('areaCat').value      = spot ? spot.cat    : 'nature';
+  document.getElementById('areaDescJa').value   = spot ? spot.ja     : '';
+  document.getElementById('areaDescEn').value   = spot ? spot.en     : '';
+  document.getElementById('areaDescZhTW').value = spot ? (spot['zh-TW'] || '') : '';
+  document.getElementById('areaDescZhCN').value = spot ? (spot['zh-CN'] || '') : '';
+  document.getElementById('areaDescKo').value   = spot ? spot.ko     : '';
+  document.getElementById('areaMapUrl').value   = spot ? (spot.mapUrl || '') : '';
+  document.getElementById('areaModal').classList.add('show');
+}
+
+function closeAreaModal() {
+  document.getElementById('areaModal').classList.remove('show');
+  editingAreaId = null;
+}
+document.getElementById('areaModal').addEventListener('click', function(e) { if (e.target === this) closeAreaModal(); });
+
+function saveArea() {
+  const name = document.getElementById('areaName').value.trim();
+  if (!name) { showToast('スポット名を入力してください'); return; }
+  const data = {
+    name,
+    cat:      document.getElementById('areaCat').value,
+    ja:       document.getElementById('areaDescJa').value.trim(),
+    en:       document.getElementById('areaDescEn').value.trim(),
+    'zh-TW':  document.getElementById('areaDescZhTW').value.trim(),
+    'zh-CN':  document.getElementById('areaDescZhCN').value.trim(),
+    ko:       document.getElementById('areaDescKo').value.trim(),
+    mapUrl:   document.getElementById('areaMapUrl').value.trim(),
+  };
+  if (editingAreaId) {
+    const spot = areaSpots.find(s => s.id === editingAreaId);
+    if (spot) Object.assign(spot, data);
+  } else {
+    areaSpots.push({ id: Date.now(), ...data });
+  }
+  closeAreaModal();
+  renderAreaList();
+  saveToStorage();
+  showToast('✓ 保存しました');
+}
+
+function deleteArea(id) {
+  if (!confirm('このスポットを削除しますか？')) return;
+  areaSpots = areaSpots.filter(s => s.id !== id);
+  renderAreaList();
+  saveToStorage();
+  showToast('削除しました');
+}
+
+async function translateAreaDesc() {
+  const jaText = document.getElementById('areaDescJa').value.trim();
+  if (!jaText) { showToast('日本語説明を先に入力してください'); return; }
+  const btn = event.target;
+  btn.textContent = '翻訳中...'; btn.disabled = true;
+  const langs = [
+    { code:'en',    el:'areaDescEn' },
+    { code:'zh-TW', el:'areaDescZhTW' },
+    { code:'zh-CN', el:'areaDescZhCN' },
+    { code:'ko',    el:'areaDescKo' },
+  ];
+  for (const l of langs) {
+    const r = await translate(jaText, l.code);
+    document.getElementById(l.el).value = r;
+  }
+  btn.textContent = '🌐 全言語に翻訳'; btn.disabled = false;
+  showToast('✓ 4言語に翻訳しました');
+}
+
+// ============================================================
+// WIFI FUNCTIONS
+// ============================================================
+function buildWifiSection(tab) {
+  const container = document.getElementById('wifi-section-' + tab);
+  if (!container) return;
+  container.innerHTML = wifiNetworks.map(w => `
+    <div class="wifi-card" id="wc-${w.id}">
+      <div class="wifi-card-head">
+        <div class="wifi-room">${w.room}</div>
+        <button class="wifi-edit-btn" onclick="openWifiModal('${w.id}')">✏️ 編集</button>
+      </div>
+      <div class="wifi-body">
+        <div class="wifi-info">
+          <div class="wifi-ssid-lbl">NETWORK NAME / SSID</div>
+          <div class="wifi-ssid">${w.ssid}</div>
+          <div class="wifi-pass-lbl">PASSWORD</div>
+          <div class="wifi-pass">${w.pass}</div>
+        </div>
+        <div class="wifi-qr-wrap" id="qr-${w.id}"></div>
+      </div>
+      <button class="wifi-show-btn" onclick="showWifiGuest('${w.id}')">📱 ゲストに見せる（大画面）</button>
+    </div>
+  `).join('');
+  // Generate QR codes
+  wifiNetworks.forEach(w => {
+    const el = document.getElementById('qr-' + w.id);
+    if (!el) return;
+    el.innerHTML = '';
+    const qrStr = `WIFI:T:${w.sec};S:${w.ssid};P:${w.pass};;`;
+    try {
+      new QRCode(el, { text: qrStr, width: 110, height: 110, colorDark:'#2c2825', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch(e) { el.innerHTML = '<div style="font-size:10px;color:var(--warm-gray);padding:4px">QR生成中...</div>'; }
+  });
+}
+
+function openWifiModal(id) {
+  const w = wifiNetworks.find(n => n.id === id);
+  if (!w) return;
+  editingWifiId = id;
+  document.getElementById('wfRoom').value = w.room;
+  document.getElementById('wfSsid').value = w.ssid;
+  document.getElementById('wfPass').value = w.pass;
+  document.getElementById('wfSec').value = w.sec;
+  document.getElementById('wifiModal').classList.add('show');
+}
+function closeWifiModal() { document.getElementById('wifiModal').classList.remove('show'); editingWifiId = null; }
+function saveWifi() {
+  const w = wifiNetworks.find(n => n.id === editingWifiId);
+  if (!w) return;
+  w.room = document.getElementById('wfRoom').value.trim();
+  w.ssid = document.getElementById('wfSsid').value.trim();
+  w.pass = document.getElementById('wfPass').value.trim();
+  w.sec  = document.getElementById('wfSec').value;
+  closeWifiModal();
+  ['floor2'].forEach(t => buildWifiSection(t));
+  saveToStorage();
+  showToast('✓ Wi-Fi情報を保存しました');
+}
+document.getElementById('wifiModal').addEventListener('click', function(e) { if (e.target === this) closeWifiModal(); });
+
+function showWifiGuest(id) {
+  const w = wifiNetworks.find(n => n.id === id);
+  if (!w) return;
+  const WIFI_LABELS = {
+    'en':    {network:'Network Name', password:'Password', hint:'Scan the QR code to connect automatically, or enter the password manually.'},
+    'zh-TW': {network:'網路名稱', password:'密碼', hint:'掃描QR碼即可自動連線，或手動輸入密碼。'},
+    'zh-CN': {network:'网络名称', password:'密码', hint:'扫描QR码即可自动连接，或手动输入密码。'},
+    'ko':    {network:'네트워크 이름', password:'비밀번호', hint:'QR코드를 스캔하면 자동으로 연결되거나, 비밀번호를 직접 입력하세요.'},
+  };
+  const lbl = WIFI_LABELS[guestLang] || WIFI_LABELS['en'];
+  const qrStr = `WIFI:T:${w.sec};S:${w.ssid};P:${w.pass};;`;
+
+  // Build guest view HTML
+  document.getElementById('gvBody').innerHTML = `
+    <div class="gv-wifi-room">📶 Wi-Fi — ${w.room}</div>
+    <div class="gv-qr-center"><div class="gv-qr-box" id="gvQR"></div></div>
+    <div class="gv-wifi-details">
+      <div class="gv-wifi-row">
+        <div class="gv-wifi-row-lbl">${lbl.network}</div>
+        <div class="gv-wifi-row-val">${w.ssid}</div>
+      </div>
+      <div class="gv-wifi-row">
+        <div class="gv-wifi-row-lbl">${lbl.password}</div>
+        <div class="gv-wifi-row-val">${w.pass}</div>
+      </div>
+      <div class="gv-wifi-hint">${lbl.hint}</div>
+    </div>`;
+  document.getElementById('guestView').style.display = 'block';
+  // Render QR in guest view
+  setTimeout(() => {
+    const el = document.getElementById('gvQR');
+    if (!el) return;
+    try {
+      new QRCode(el, { text: qrStr, width: 180, height: 180, colorDark:'#1a0f08', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch(e) { el.textContent = 'QRコード生成エラー'; }
+  }, 50);
+}
+
+
+// ============================================================
+// LOCAL STORAGE — 自動保存・自動読み込み
+// ============================================================
+const LS_KEY = 'wassa_data_v1';
+
+function saveToStorage() {
+  try {
+    const data = {
+      phrases: phrases,
+      ingredients: ingredients,
+      wifiNetworks: wifiNetworks,
+      areaSpots: areaSpots,
+      savedAt: new Date().toLocaleString('ja-JP')
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    const el = document.getElementById('saveStatus');
+    if (el) {
+      el.textContent = '✓ 保存済 ' + data.savedAt.slice(5,16);
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.textContent = '📲 自動保存 ON'; }, 3000);
+    }
+  } catch(e) { console.warn('save failed', e); }
+}
+
+function loadFromStorage() {
+  try {
+    // Priority 1: baked-in backup from exported HTML
+    if (window.__WASSA_RESTORE__) {
+      const d = window.__WASSA_RESTORE__;
+      if (d.phrases)      phrases = d.phrases;
+      if (d.ingredients)  ingredients = d.ingredients;
+      if (d.wifiNetworks) wifiNetworks = d.wifiNetworks;
+      // Also save to localStorage so edits persist
+      saveToStorage();
+      window.__WASSA_RESTORE__ = null;
+      return true;
+    }
+    // Priority 2: localStorage
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.phrases)      phrases = data.phrases;
+    if (data.ingredients)  ingredients = data.ingredients;
+    if (data.wifiNetworks) wifiNetworks = data.wifiNetworks;
+    if (data.areaSpots)    areaSpots = data.areaSpots;
+    return true;
+  } catch(e) { console.warn('load failed', e); return false; }
+}
+
+function clearAllData() {
+  if (!confirm('すべてのデータをリセットしますか？\n（初期データに戻ります）')) return;
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+function exportHTML() {
+  try {
+    const data = { phrases, ingredients, wifiNetworks };
+    const json = JSON.stringify(data);
+    // inject a restore script into a copy of the page
+    const marker = '/* __WASSA_DATA_INJECT__ */';
+    const restoreScript = `<script>
+window.__WASSA_RESTORE__ = ${json};
+<\/script>`;
+    let html = document.documentElement.outerHTML;
+    // Remove any previous inject
+    html = html.replace(/<script>\s*window\.__WASSA_RESTORE__[\s\S]*?<\/script>\n?/g, '');
+    // Insert before closing head
+    html = html.replace('</head>', restoreScript + '\n</head>');
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'wassa-staff-translator.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast('✓ ダウンロードしました。GitHubに上書きアップしてください。');
+  } catch(e) { showToast('エラー: ' + e.message); }
+}
+// ============================================================
+// UTILS
+// ============================================================
+// Touch swipe on guest view
+(function(){
+  const gv = document.getElementById('guestView');
+  gv.addEventListener('touchstart', function(e){ gvTouchX = e.touches[0].clientX; }, {passive:true});
+  gv.addEventListener('touchend', function(e){
+    if (gvTouchX === null) return;
+    const dx = e.changedTouches[0].clientX - gvTouchX;
+    gvTouchX = null;
+    if (Math.abs(dx) > 50) gvNavigate(dx < 0 ? 1 : -1);
+  }, {passive:true});
+})();
+
+
+// Auto-restore on page load
+window.addEventListener('DOMContentLoaded', function() {
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    try {
+      const d = JSON.parse(saved);
+      if (d.lastLang) {
+        // Don't auto-skip splash — always let staff select lang for current guest
+      }
+    } catch(e) {}
+  }
+});
+
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 80) + 'px'; }
+function getTime() { return new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }); }
+function escHtml(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2300); }
+</script>
+</body>
+</html>
