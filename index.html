@@ -374,6 +374,7 @@ window.__WASSA_RESTORE__ = {"phrases": {"greet": [{"id": 1, "text": "はじめ�
     <span class="export-bar-txt" id="saveStatus">📲 自動保存 ON</span>
     <div style="display:flex;gap:8px">
       <button class="export-btn" id="apiKeyBtn" onclick="openApiKeyModal()" style="background:var(--ocean)">🔑 翻訳AI</button>
+      <button class="export-btn" onclick="retranslateAll()" style="background:var(--earth)">🔄 全フレーズ再翻訳</button>
       <button class="export-btn" onclick="exportHTML()" style="background:var(--forest)">📥 バックアップ</button>
       <button class="export-btn" onclick="clearAllData()">🗑 リセット</button>
     </div>
@@ -3598,6 +3599,32 @@ function saveApiKey() {
 function updateApiKeyStatus() {
   const btn = document.getElementById('apiKeyBtn');
   if (btn) btn.textContent = getApiKey() ? '🔑 Claude ON' : '🔑 翻訳AI';
+}
+async function retranslateAll() {
+  if (!confirm('全フレーズを今の翻訳エンジンで訳し直します（保存済み翻訳は上書きされます）。よろしいですか？')) return;
+  const langs = ['en', 'zh-TW', 'zh-CN', 'ko'];
+  const tabs = Object.keys(phrases);
+  let total = 0, done = 0;
+  tabs.forEach(t => total += (phrases[t] || []).length);
+  const btn = event.target;
+  const origText = btn.textContent;
+  for (const tab of tabs) {
+    for (const item of (phrases[tab] || [])) {
+      for (const lang of langs) {
+        try {
+          const t = await translate(item.text, lang);
+          if (lang === 'en') item.trans = t;
+          else item['trans_' + lang] = t;
+        } catch(e) {}
+      }
+      done++;
+      btn.textContent = `翻訳中... ${done}/${total}`;
+    }
+  }
+  btn.textContent = origText;
+  saveToStorage();
+  Object.keys(TABS).forEach(t => renderPhrases(t));
+  showToast('✓ 全フレーズを再翻訳しました');
 }
 
 // ============================================================
